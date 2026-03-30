@@ -245,49 +245,82 @@
     <section class="card">
       <h2>Architecture Diagram</h2>
       <div class="diagram">
-        <svg viewBox="0 0 1100 420" role="img" aria-label="Warm memory architecture diagram">
+        <svg viewBox="0 0 1400 620" role="img" aria-label="WarmMemory architecture diagram">
           <defs>
             <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
               <path d="M0,0 L10,5 L0,10 z" fill="#7b341e"></path>
             </marker>
+            <marker id="arrow-loop" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#8a6848"></path>
+            </marker>
           </defs>
-          <rect x="40" y="120" width="150" height="70" rx="16" fill="#f3d5c7" stroke="#b8572f" stroke-width="2"></rect>
-          <text x="115" y="150" text-anchor="middle" font-size="22" fill="#1f2933">User Query</text>
-          <text x="115" y="172" text-anchor="middle" font-size="14" fill="#52606d">new request</text>
+          <rect width="1400" height="620" fill="#fffaf3"></rect>
+          <rect x="50" y="235" width="180" height="86" rx="18" fill="#f3d5c7" stroke="#b8572f" stroke-width="3"></rect>
+          <text x="140" y="272" text-anchor="middle" font-size="26" fill="#1f2933">User Query</text>
+          <text x="140" y="300" text-anchor="middle" font-size="16" fill="#52606d">new request</text>
 
-          <rect x="250" y="105" width="190" height="100" rx="16" fill="#fff7ea" stroke="#c19a6b" stroke-width="2"></rect>
-          <text x="345" y="142" text-anchor="middle" font-size="22" fill="#1f2933">Agent Wrapper</text>
-          <text x="345" y="164" text-anchor="middle" font-size="14" fill="#52606d">decorator intercepts</text>
-          <text x="345" y="184" text-anchor="middle" font-size="14" fill="#52606d">input / output</text>
+          <rect x="300" y="215" width="240" height="126" rx="18" fill="#fff7ea" stroke="#c19a6b" stroke-width="3"></rect>
+          <text x="420" y="262" text-anchor="middle" font-size="28" fill="#1f2933">Agent Runtime</text>
+          <text x="420" y="292" text-anchor="middle" font-size="16" fill="#52606d">decorator captures</text>
+          <text x="420" y="316" text-anchor="middle" font-size="16" fill="#52606d">input / output</text>
 
-          <rect x="500" y="60" width="220" height="100" rx="16" fill="#eef8f1" stroke="#1f7a54" stroke-width="2"></rect>
-          <text x="610" y="97" text-anchor="middle" font-size="22" fill="#1f2933">Warm Buffer</text>
-          <text x="610" y="119" text-anchor="middle" font-size="14" fill="#52606d">Pandas DataFrame</text>
-          <text x="610" y="139" text-anchor="middle" font-size="14" fill="#52606d">recent / relevant / retain</text>
+          <rect x="610" y="90" width="270" height="118" rx="20" fill="#eef8f1" stroke="#1f7a54" stroke-width="3"></rect>
+          <text x="745" y="136" text-anchor="middle" font-size="28" fill="#1f2933">WarmMemory</text>
+          <text x="745" y="166" text-anchor="middle" font-size="16" fill="#52606d">in-memory working set</text>
+          <text x="745" y="190" text-anchor="middle" font-size="16" fill="#52606d">recent | relevant | retain</text>
 
-          <rect x="500" y="225" width="220" height="100" rx="16" fill="#fff7ea" stroke="#c19a6b" stroke-width="2"></rect>
-          <text x="610" y="262" text-anchor="middle" font-size="22" fill="#1f2933">Importance Scorer</text>
-          <text x="610" y="284" text-anchor="middle" font-size="14" fill="#52606d">keyword scorer now</text>
-          <text x="610" y="304" text-anchor="middle" font-size="14" fill="#52606d">model scorer later</text>
+          <rect x="610" y="350" width="270" height="118" rx="20" fill="#fff7ea" stroke="#c19a6b" stroke-width="3"></rect>
+          <text x="745" y="396" text-anchor="middle" font-size="28" fill="#1f2933">Retrieval Ranker</text>
+          <text x="745" y="422" text-anchor="middle" font-size="16" fill="#52606d">importance scoring</text>
+          <text x="745" y="446" text-anchor="middle" font-size="16" fill="#52606d">heuristic now | model later</text>
 
-          <rect x="790" y="60" width="250" height="100" rx="16" fill="#fcf7f0" stroke="#8a5a00" stroke-width="2"></rect>
-          <text x="915" y="97" text-anchor="middle" font-size="22" fill="#1f2933">Prompt Builder</text>
-          <text x="915" y="119" text-anchor="middle" font-size="14" fill="#52606d">top K memory only</text>
-          <text x="915" y="139" text-anchor="middle" font-size="14" fill="#52606d">smaller context window</text>
+          <polygon points="985,215 1065,275 985,335 905,275" fill="#fcf7f0" stroke="#8a5a00" stroke-width="3"></polygon>
+          <text x="985" y="270" text-anchor="middle" font-size="24" fill="#1f2933">Warm Hit?</text>
+          <text x="985" y="292" text-anchor="middle" font-size="15" fill="#52606d">enough context</text>
 
-          <rect x="790" y="225" width="250" height="100" rx="16" fill="#fff3f0" stroke="#b8572f" stroke-width="2"></rect>
-          <text x="915" y="262" text-anchor="middle" font-size="22" fill="#1f2933">Long-Term Memory</text>
-          <text x="915" y="284" text-anchor="middle" font-size="14" fill="#52606d">vector DB / SQL / logs</text>
-          <text x="915" y="304" text-anchor="middle" font-size="14" fill="#52606d">fallback only</text>
+          <rect x="1130" y="95" width="220" height="110" rx="18" fill="#fcf7f0" stroke="#8a5a00" stroke-width="3"></rect>
+          <text x="1240" y="138" text-anchor="middle" font-size="28" fill="#1f2933">Prompt Builder</text>
+          <text x="1240" y="168" text-anchor="middle" font-size="16" fill="#52606d">top K memory only</text>
 
-          <line x1="190" y1="155" x2="250" y2="155" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
-          <line x1="440" y1="120" x2="500" y2="105" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
-          <line x1="440" y1="190" x2="500" y2="245" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
-          <line x1="720" y1="110" x2="790" y2="110" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
-          <line x1="720" y1="275" x2="790" y2="275" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
-          <line x1="915" y1="160" x2="915" y2="225" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <rect x="1130" y="355" width="220" height="110" rx="18" fill="#fff3f0" stroke="#b8572f" stroke-width="3"></rect>
+          <text x="1240" y="398" text-anchor="middle" font-size="28" fill="#1f2933">Long-Term Memory</text>
+          <text x="1240" y="428" text-anchor="middle" font-size="16" fill="#52606d">vector DB | SQL | logs</text>
 
-          <text x="742" y="196" font-size="14" fill="#52606d">fallback when warm hit is weak</text>
+          <rect x="1130" y="235" width="220" height="78" rx="18" fill="#f3d5c7" stroke="#b8572f" stroke-width="3"></rect>
+          <text x="1240" y="283" text-anchor="middle" font-size="28" fill="#1f2933">LLM Response</text>
+
+          <!-- Forward: User Query → Agent Runtime -->
+          <line x1="230" y1="278" x2="297" y2="278" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <!-- Forward: Agent Runtime → WarmMemory -->
+          <line x1="540" y1="245" x2="607" y2="155" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <!-- Forward: Agent Runtime → Retrieval Ranker -->
+          <line x1="540" y1="315" x2="607" y2="400" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <!-- Forward: WarmMemory → diamond -->
+          <line x1="880" y1="165" x2="945" y2="245" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <!-- Forward: Retrieval Ranker → diamond -->
+          <line x1="880" y1="400" x2="945" y2="308" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+
+          <!-- Forward: diamond → yes → Prompt Builder -->
+          <line x1="1035" y1="242" x2="1127" y2="170" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <text x="1112" y="198" text-anchor="start" font-size="16" fill="#1f7a54" font-weight="bold">yes</text>
+
+          <!-- Forward: diamond → no → Long-Term Memory -->
+          <line x1="1035" y1="308" x2="1127" y2="390" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <text x="1112" y="368" text-anchor="start" font-size="16" fill="#8a5a00" font-weight="bold">no</text>
+
+          <!-- Forward: Prompt Builder → LLM Response -->
+          <line x1="1240" y1="205" x2="1240" y2="232" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <!-- Forward: Long-Term Memory → LLM Response -->
+          <line x1="1240" y1="355" x2="1240" y2="316" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"></line>
+          <text x="1290" y="338" font-size="15" fill="#52606d">fallback</text>
+
+          <!-- Feedback: LLM Response → Agent Runtime (routed left then below all boxes) -->
+          <path d="M 1130 274 C 1080 274, 1080 570, 750 570 C 420 570, 420 440, 420 341" fill="none" stroke="#8a6848" stroke-width="3" stroke-dasharray="10 6" marker-end="url(#arrow-loop)"></path>
+          <text x="750" y="596" text-anchor="middle" font-size="16" fill="#52606d">capture output</text>
+
+          <!-- Feedback: Agent Runtime → WarmMemory (routed above all boxes) -->
+          <path d="M 350 215 C 350 30, 680 30, 680 90" fill="none" stroke="#8a6848" stroke-width="3" stroke-dasharray="10 6" marker-end="url(#arrow-loop)"></path>
+          <text x="515" y="20" text-anchor="middle" font-size="16" fill="#52606d">write to WarmMemory</text>
         </svg>
       </div>
     </section>
