@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 420" role="img" aria-label="Warm memory architecture diagram">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7b341e"/>
+    </marker>
+  </defs>
+  <rect width="1100" height="420" fill="#fffaf3"/>
+
+  <rect x="40" y="120" width="150" height="70" rx="16" fill="#f3d5c7" stroke="#b8572f" stroke-width="2"/>
+  <text x="115" y="150" text-anchor="middle" font-size="22" fill="#1f2933" font-family="Georgia, serif">User Query</text>
+  <text x="115" y="172" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">new request</text>
+
+  <rect x="250" y="105" width="190" height="100" rx="16" fill="#fff7ea" stroke="#c19a6b" stroke-width="2"/>
+  <text x="345" y="142" text-anchor="middle" font-size="22" fill="#1f2933" font-family="Georgia, serif">Agent Wrapper</text>
+  <text x="345" y="164" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">decorator intercepts</text>
+  <text x="345" y="184" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">input / output</text>
+
+  <rect x="500" y="60" width="220" height="100" rx="16" fill="#eef8f1" stroke="#1f7a54" stroke-width="2"/>
+  <text x="610" y="97" text-anchor="middle" font-size="22" fill="#1f2933" font-family="Georgia, serif">Warm Buffer</text>
+  <text x="610" y="119" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">Pandas DataFrame</text>
+  <text x="610" y="139" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">recent / relevant / retain</text>
+
+  <rect x="500" y="225" width="220" height="100" rx="16" fill="#fff7ea" stroke="#c19a6b" stroke-width="2"/>
+  <text x="610" y="262" text-anchor="middle" font-size="22" fill="#1f2933" font-family="Georgia, serif">Importance Scorer</text>
+  <text x="610" y="284" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">keyword scorer now</text>
+  <text x="610" y="304" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">model scorer later</text>
+
+  <rect x="790" y="60" width="250" height="100" rx="16" fill="#fcf7f0" stroke="#8a5a00" stroke-width="2"/>
+  <text x="915" y="97" text-anchor="middle" font-size="22" fill="#1f2933" font-family="Georgia, serif">Prompt Builder</text>
+  <text x="915" y="119" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">top K memory only</text>
+  <text x="915" y="139" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">smaller context window</text>
+
+  <rect x="790" y="225" width="250" height="100" rx="16" fill="#fff3f0" stroke="#b8572f" stroke-width="2"/>
+  <text x="915" y="262" text-anchor="middle" font-size="22" fill="#1f2933" font-family="Georgia, serif">Long-Term Memory</text>
+  <text x="915" y="284" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">vector DB / SQL / logs</text>
+  <text x="915" y="304" text-anchor="middle" font-size="14" fill="#52606d" font-family="Georgia, serif">fallback only</text>
+
+  <line x1="190" y1="155" x2="250" y2="155" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="440" y1="120" x2="500" y2="105" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="440" y1="190" x2="500" y2="245" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="720" y1="110" x2="790" y2="110" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="720" y1="275" x2="790" y2="275" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="915" y1="160" x2="915" y2="225" stroke="#7b341e" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <text x="742" y="196" font-size="14" fill="#52606d" font-family="Georgia, serif">fallback when warm hit is weak</text>
+</svg>
