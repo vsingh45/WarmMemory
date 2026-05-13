@@ -72,8 +72,16 @@ The benchmark models a practical split:
 - `warm_memory/decorators.py`: function decorator for interaction capture
 - `warm_memory/benchmark.py`: deterministic benchmark harness
 - `warm_memory/workload.py`: synthetic workload for evaluation
-- `scripts/run_benchmark.py`: benchmark entrypoint
-- `reports/warm_memory_benchmark.md`: generated benchmark output
+- `warm_memory/langgraph/`: LangGraph integration (optional extra)
+  - `store.py`: `WarmStore(BaseStore)` with per-namespace eviction
+  - `embeddings.py`: bring-your-own embeddings scorer
+  - `agent.py`: pre-built `build_warm_memory_agent` graph
+  - `benchmark.py`: full-history vs vector-only vs warm-fallback benchmark
+- `examples/langgraph_warm_agent.py`: runnable LangGraph agent example
+- `scripts/run_benchmark.py`: legacy benchmark entrypoint
+- `scripts/run_langgraph_benchmark.py`: LangGraph-based benchmark entrypoint
+- `reports/warm_memory_benchmark.md`: legacy benchmark output
+- `reports/warm_memory_langgraph_benchmark.md`: LangGraph benchmark output
 - `docs/warm_memory_guide.html`: public-facing HTML documentation
 - `tests/`: unit tests
 
@@ -193,13 +201,95 @@ Avoid overclaiming:
 - do not imply peer-reviewed novelty,
 - do not claim production readiness unless you harden the system further.
 
+## LangGraph Integration
+
+WarmMemory ships an optional `warm_memory.langgraph` module that plugs directly
+into the LangGraph ecosystem. Install the extra:
+
+```bash
+python3 -m pip install -e ".[langgraph]"
+```
+
+### Drop-in `BaseStore`
+
+`WarmStore` implements LangGraph's `BaseStore` interface with **per-namespace
+warm buffers** — each namespace gets its own bounded buffer, so multi-tenant
+agents don't evict each other's memory.
+
+```python
+from warm_memory.langgraph import WarmStore
+
+store = WarmStore(capacity=16)
+store.put(("alice",), "preferences", {"text": "wants concise answers"})
+store.put(("alice",), "billing", {"text": "invoice overdue", "topic": "billing"})
+
+# query-based recall (keyword scorer by default)
+hits = store.search(("alice",), query="how do I pay my invoice?")
+
+# filter operators: $eq, $ne, $gt, $gte, $lt, $lte
+billing = store.search(("alice",), filter={"topic": "billing"})
+```
+
+### Bring-your-own embeddings
+
+Swap the default keyword scorer for any LangChain `Embeddings`:
+
+```python
+from langchain_openai import OpenAIEmbeddings
+from warm_memory.langgraph import EmbeddingsImportanceScorer, WarmStore
+
+scorer = EmbeddingsImportanceScorer(OpenAIEmbeddings())
+store = WarmStore(scorer=scorer)
+```
+
+Works with any LangChain embeddings provider — OpenAI, HuggingFace, Voyage,
+Anthropic — or `DeterministicFakeEmbedding` for tests.
+
+### Pre-built agent
+
+`build_warm_memory_agent` returns a compiled LangGraph that reads warm memory
+before responding and writes the new exchange back on the way out:
+
+```python
+from warm_memory.langgraph import WarmStore, build_warm_memory_agent
+
+store = WarmStore(capacity=8)
+agent = build_warm_memory_agent(model=my_chat_model, store=store)
+agent.invoke({"query": "Where's my invoice?", "namespace": ("alice",)})
+```
+
+A runnable example using `FakeListChatModel` (no API keys) lives at
+`examples/langgraph_warm_agent.py`.
+
+### Comparative benchmark
+
+`scripts/run_langgraph_benchmark.py` compares three retrieval strategies through
+the LangGraph store API:
+
+- `full-history`: every prior turn in the prompt (naive baseline)
+- `vector-only`: LangGraph's `InMemoryStore` with an embedding index
+- `warm-fallback`: `WarmStore` in front of the vector store
+
+```bash
+python3 scripts/run_langgraph_benchmark.py
+```
+
+This writes `reports/warm_memory_langgraph_benchmark.md`. Run it with synthetic
+embeddings by default; set `WARM_BENCH_EMBEDDINGS=openai` (and `OPENAI_API_KEY`)
+to compare against real semantic search.
+
 ## Roadmap
 
-- add an embedding-based or reranker-based importance scorer
+- ~~add an embedding-based or reranker-based importance scorer~~ (done via
+  `EmbeddingsImportanceScorer`)
+- ~~compare against vector-store-first baselines~~ (done via
+  `warm-fallback` strategy in the LangGraph benchmark)
 - benchmark against real agent traces instead of only synthetic workloads
 - record actual model latency and token usage from a live LLM pipeline
-- compare against vector-store-first baselines
 - add charts and experiment summaries for publication-style reporting
+- TTL support for the LangGraph `BaseStore`
+- publish `warm-memory` to PyPI and propose inclusion in LangGraph's third-party
+  store list
 
 ## License
 
