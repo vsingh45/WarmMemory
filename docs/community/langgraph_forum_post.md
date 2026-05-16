@@ -23,7 +23,7 @@ opening any PR I'm following the contribution guidance and posting the
 proposal here so the abstraction framing can be reviewed by maintainers.
 
 **Repo:** https://github.com/vsingh45/WarmMemory
-**Package:** `warm-memory[langgraph]` (Python 3.11+, MIT licence)
+**Package:** [`warm-memory`](https://pypi.org/project/warm-memory/) on PyPI — `pip install warm-memory[langgraph]` (Python 3.11+, MIT licence)
 **Full proposal document** (with the four required sections — Abstraction /
 Usage Pattern / Performance & Scaling / Integration with Existing Tools):
 [`docs/community/proposal.md`](https://github.com/vsingh45/WarmMemory/blob/main/docs/community/proposal.md)
@@ -73,9 +73,10 @@ print(result["recalled"])
 # [{'key': 'exchange-1', 'score': 0.55..., 'value': {'user': '...', 'assistant': '...'}}]
 ```
 
-The package ships 31 tests (23 of which are `BaseStore` conformance for
-`WarmStore`), CI on Python 3.11 / 3.12 / 3.13, and a comparative benchmark
-in the repo.
+The package ships 40 tests covering the `BaseStore` contract
+(get / put / update / delete / filter operators / namespace listing / batch /
+async / per-namespace eviction isolation), CI on Python 3.11 / 3.12 / 3.13,
+and a comparative benchmark in the repo.
 
 ## Benchmark headline (deterministic synthetic, 12 turns)
 
