@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WarmMemory architecture</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --warm: #f78166;
+    --vector: #a371f7;
+    --llm: #3fb950;
+    --agent: #d29922;
+    --inactive: #484f58;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.45;
+  }
+  header { padding: 32px 32px 16px; border-bottom: 1px solid var(--border); }
+  header h1 { margin: 0 0 8px; font-size: 24px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; max-width: 720px; }
+  header code { background: var(--panel); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 16px 32px; border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .strategy-group { display: flex; gap: 8px; }
+  .strategy-group label { color: var(--muted); font-size: 13px; align-self: center; padding-right: 4px; }
+  button {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 14px; cursor: pointer; font-size: 13px;
+    font-family: inherit; transition: all 0.15s ease;
+  }
+  button:hover { background: var(--border); }
+  button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button#simulate { margin-left: auto; background: var(--llm); border-color: var(--llm); color: #fff; }
+  button#simulate:hover { filter: brightness(1.1); }
+  main {
+    display: grid; grid-template-columns: 1fr 380px;
+    gap: 24px; padding: 24px 32px;
+    min-height: calc(100vh - 220px);
+  }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  svg.diagram { width: 100%; height: auto; max-height: 520px; }
+  aside {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 20px; font-size: 14px;
+  }
+  aside h2 { margin-top: 0; font-size: 18px; color: var(--accent); }
+  aside h3 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  aside p { color: var(--text); margin: 0 0 14px; }
+  aside pre {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px; overflow-x: auto; font-size: 12px; line-height: 1.5;
+    color: #e6edf3;
+  }
+  aside table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  aside th, aside td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  aside th { color: var(--muted); font-weight: 500; }
+  aside .metric-good { color: var(--llm); font-weight: 600; }
+  /* SVG node styles */
+  .node rect { stroke-width: 2; transition: all 0.2s ease; cursor: pointer; }
+  .node text { font-family: inherit; font-size: 13px; pointer-events: none; }
+  .node .label { fill: #fff; font-weight: 600; }
+  .node .sub { fill: rgba(255,255,255,0.7); font-size: 11px; }
+  .node.warm rect    { fill: rgba(247,129,102,0.15); stroke: var(--warm); }
+  .node.vector rect  { fill: rgba(163,113,247,0.15); stroke: var(--vector); }
+  .node.llm rect     { fill: rgba(63,185,80,0.15);   stroke: var(--llm); }
+  .node.agent rect   { fill: rgba(210,153,34,0.15);  stroke: var(--agent); }
+  .node.user rect    { fill: rgba(88,166,255,0.15);  stroke: var(--accent); }
+  .node.hidden { opacity: 0.2; }
+  .node:hover rect { filter: brightness(1.3); }
+  .edge { fill: none; stroke: var(--muted); stroke-width: 2; transition: all 0.2s ease; }
+  .edge.active { stroke: var(--accent); stroke-width: 3; }
+  .edge.hidden { opacity: 0.15; }
+  .edge-label { fill: var(--muted); font-size: 11px; }
+  .edge-label.active { fill: var(--accent); }
+  #pulse { fill: var(--accent); r: 7; opacity: 0; }
+  #pulse.go { opacity: 1; transition: opacity 0.2s, cx 0.6s ease, cy 0.6s ease; }
+  footer { padding: 16px 32px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>WarmMemory architecture</h1>
+  <p>
+    An interactive walkthrough of how a query flows through a LangGraph agent using
+    <code>WarmStore</code> as a capacity-bounded warm tier in front of a vector store.
+    Click a strategy below to switch which retrieval path is active, then
+    <strong>Simulate query</strong> to watch a request flow through it.
+  </p>
+</header>
+
+<div class="controls">
+  <div class="strategy-group">
+    <label>Strategy</label>
+    <button data-strategy="full-history">full-history</button>
+    <button data-strategy="vector-only">vector-only</button>
+    <button data-strategy="warm-fallback" class="active">warm-fallback</button>
+  </div>
+  <button id="simulate">▶ Simulate query</button>
+</div>
+
+<main>
+  <svg class="diagram" viewBox="0 0 760 460">
+    <!-- Edges (rendered first, behind nodes) -->
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+      </marker>
+    </defs>
+
+    <!-- User -> Agent -->
+    <path class="edge e-user-agent" d="M115,80 L255,80" marker-end="url(#arrow)"/>
+
+    <!-- Agent -> Warm -->
+    <path class="edge e-agent-warm" d="M395,80 L395,160 L255,160 L255,200" marker-end="url(#arrow)"/>
+    <text class="edge-label e-agent-warm-label" x="395" y="155" text-anchor="middle">1. lookup</text>
+
+    <!-- Warm -> LLM (hit) -->
+    <path class="edge e-warm-llm" d="M395,240 L530,240 L530,80 L605,80" marker-end="url(#arrow)"/>
+    <text class="edge-label e-warm-llm-label" x="465" y="234">hit → build prompt</text>
+
+    <!-- Warm -> Vector (miss) -->
+    <path class="edge e-warm-vector" d="M255,280 L255,360" marker-end="url(#arrow)"/>
+    <text class="edge-label e-warm-vector-label" x="265" y="325">miss</text>
+
+    <!-- Vector -> LLM -->
+    <path class="edge e-vector-llm" d="M395,400 L605,400 L605,120" marker-end="url(#arrow)"/>
+    <text class="edge-label e-vector-llm-label" x="465" y="394">build prompt</text>
+
+    <!-- LLM -> User (response) -->
+    <path class="edge e-llm-user" d="M645,40 L645,20 L65,20 L65,60" marker-end="url(#arrow)"/>
+    <text class="edge-label e-llm-user-label" x="355" y="15" text-anchor="middle">response</text>
+
+    <!-- LLM -> Warm (write-back) -->
+    <path class="edge e-llm-warm" d="M605,100 L530,100 L530,220 L395,220" marker-end="url(#arrow)" stroke-dasharray="4 4"/>
+
+    <!-- LLM -> Vector (write-back) -->
+    <path class="edge e-llm-vector" d="M645,120 L645,400 L515,400" marker-end="url(#arrow)" stroke-dasharray="4 4"/>
+
+    <!-- Full-history bypass edge: Agent -> LLM directly -->
+    <path class="edge e-agent-llm-direct" d="M395,80 L605,80" marker-end="url(#arrow)"/>
+    <text class="edge-label e-agent-llm-direct-label" x="500" y="74" text-anchor="middle">entire history in prompt</text>
+
+    <!-- Nodes -->
+    <g class="node user" data-node="user">
+      <rect x="20" y="50" width="100" height="60" rx="8"/>
+      <text class="label" x="70" y="78" text-anchor="middle">User</text>
+      <text class="sub" x="70" y="96" text-anchor="middle">query</text>
+    </g>
+
+    <g class="node agent" data-node="agent">
+      <rect x="260" y="50" width="140" height="60" rx="8"/>
+      <text class="label" x="330" y="78" text-anchor="middle">LangGraph Agent</text>
+      <text class="sub" x="330" y="96" text-anchor="middle">memory_lookup → respond → memory_write</text>
+    </g>
+
+    <g class="node llm" data-node="llm">
+      <rect x="605" y="50" width="135" height="60" rx="8"/>
+      <text class="label" x="672" y="78" text-anchor="middle">LLM</text>
+      <text class="sub" x="672" y="96" text-anchor="middle">ChatAnthropic / ChatOpenAI / …</text>
+    </g>
+
+    <g class="node warm" data-node="warm">
+      <rect x="170" y="200" width="225" height="80" rx="8"/>
+      <text class="label" x="282" y="232" text-anchor="middle">WarmStore  (BaseStore)</text>
+      <text class="sub" x="282" y="252" text-anchor="middle">per-namespace bounded buffer</text>
+      <text class="sub" x="282" y="268" text-anchor="middle">keyword / embeddings scorer</text>
+    </g>
+
+    <g class="node vector" data-node="vector">
+      <rect x="170" y="370" width="225" height="60" rx="8"/>
+      <text class="label" x="282" y="398" text-anchor="middle">Vector Store</text>
+      <text class="sub" x="282" y="416" text-anchor="middle">InMemoryStore / PostgresStore / …</text>
+    </g>
+
+    <!-- Pulse for simulation -->
+    <circle id="pulse" cx="0" cy="0"></circle>
+  </svg>
+
+  <aside>
+    <h2 id="panel-title">warm-fallback</h2>
+    <p id="panel-desc">
+      Warm memory queried first. If the best score clears <code>warm_hit_threshold</code>,
+      the vector store is never touched. On a miss, fall through to the durable tier.
+      All writes are mirrored to both stores.
+    </p>
+
+    <h3>Code</h3>
+    <pre id="panel-code">store = WarmStore(capacity=16)
+vector = InMemoryStore(index={"embed": emb, "dims": 1536, "fields": ["text"]})
+
+hits = store.search(("alice",), query=q, limit=5)
+if hits and (hits[0].score or 0) >= 0.34:
+    chosen = hits                     # warm hit
+else:
+    chosen = vector.search(("alice",), query=q, limit=5)  # fallback</pre>
+
+    <h3>Synthetic 12-turn benchmark</h3>
+    <table id="metrics">
+      <thead><tr><th>metric</th><th>value</th></tr></thead>
+      <tbody>
+        <tr><td>avg prompt tokens</td><td class="metric-good" id="m-tokens">35.3</td></tr>
+        <tr><td>answer accuracy</td><td id="m-acc">0.500</td></tr>
+        <tr><td>warm hit rate</td><td class="metric-good" id="m-hit">0.50</td></tr>
+        <tr><td>vector calls / turn</td><td class="metric-good" id="m-vec">0.50</td></tr>
+      </tbody>
+    </table>
+  </aside>
+</main>
+
+<footer>
+  Click any node to focus it. Solid arrows are read paths, dashed arrows are write-back.
+  Source: <a href="https://github.com/vsingh45/WarmMemory">github.com/vsingh45/WarmMemory</a> ·
+  Package: <a href="https://pypi.org/project/warm-memory/">warm-memory on PyPI</a>
+</footer>
+
+<script>
+const STRATEGIES = {
+  "full-history": {
+    title: "full-history",
+    desc: "Every prior exchange is concatenated into the prompt on every turn. No retrieval, no eviction. Baseline for comparison — accurate, but prompt size grows linearly with conversation length.",
+    code: `# every turn: pass the full conversation history\nmessages = [SystemMessage(system_prompt)]\nfor prev_user, prev_ai in history:\n    messages.append(HumanMessage(prev_user))\n    messages.append(AIMessage(prev_ai))\nmessages.append(HumanMessage(current_query))\nai = model.invoke(messages)`,
+    activeEdges: ["e-user-agent", "e-agent-llm-direct", "e-llm-user"],
+    pulsePath: [[65, 80], [330, 80], [672, 80], [65, 20]],
+    metrics: { tokens: "52.0", acc: "0.583", hit: "—", vec: "—" },
+    tokensGood: false, hitGood: false,
+  },
+  "vector-only": {
+    title: "vector-only",
+    desc: "Every query goes to the vector store (LangGraph InMemoryStore with embedding index, or a durable BaseStore like PostgresStore). No warm tier — every turn pays the embedding round-trip.",
+    code: `vector = InMemoryStore(index={"embed": emb, "dims": 1536, "fields": ["text"]})\n\nhits = vector.search(("alice",), query=q, limit=5)\nmessages = [SystemMessage(prompt_with_memory(hits)), HumanMessage(q)]\nai = model.invoke(messages)\nvector.put(("alice",), next_key(), {"text": q, "topic": ...})`,
+    activeEdges: ["e-user-agent", "e-agent-warm", "e-warm-vector", "e-vector-llm", "e-llm-user", "e-llm-vector"],
+    pulsePath: [[65, 80], [330, 80], [282, 240], [282, 400], [672, 400], [672, 80], [65, 20]],
+    metrics: { tokens: "35.4", acc: "0.417", hit: "0.0", vec: "1.00" },
+    tokensGood: true, hitGood: false,
+  },
+  "warm-fallback": {
+    title: "warm-fallback",
+    desc: "Warm memory queried first. If the best score clears warm_hit_threshold, the vector store is never touched. On a miss, fall through to the durable tier. All writes are mirrored to both stores.",
+    code: `store = WarmStore(capacity=16)\nvector = InMemoryStore(index={"embed": emb, "dims": 1536, "fields": ["text"]})\n\nhits = store.search(("alice",), query=q, limit=5)\nif hits and (hits[0].score or 0) >= 0.34:\n    chosen = hits                     # warm hit\nelse:\n    chosen = vector.search(("alice",), query=q, limit=5)  # fallback`,
+    activeEdges: ["e-user-agent", "e-agent-warm", "e-warm-llm", "e-llm-user", "e-llm-warm", "e-llm-vector"],
+    pulsePath: [[65, 80], [330, 80], [282, 240], [672, 80], [65, 20]],
+    metrics: { tokens: "35.3", acc: "0.500", hit: "0.50", vec: "0.50" },
+    tokensGood: true, hitGood: true,
+  },
+};
+
+const NODES = {
+  user:   { title: "User", desc: "The query entering the agent. In a multi-tenant app, the user id becomes the WarmStore namespace, so per-user memory is isolated.", code: "agent.invoke({\"query\": q, \"namespace\": (user_id,)})" },
+  agent:  { title: "LangGraph Agent", desc: "build_warm_memory_agent compiles to a three-node StateGraph: memory_lookup → respond → memory_write. Drop WarmStore into any existing graph; it's a plain BaseStore.", code: "from warm_memory.langgraph import WarmStore, build_warm_memory_agent\n\nagent = build_warm_memory_agent(model=model, store=WarmStore(capacity=16))" },
+  warm:   { title: "WarmStore", desc: "BaseStore implementation with per-namespace capacity-bounded eviction. Each top-level namespace gets its own bounded buffer — A's writes never evict B's memory. Bounds total memory at O(namespaces × capacity).", code: "store.put((\"alice\",), \"preferences\", {\"text\": \"wants concise answers\"})\nhits = store.search((\"alice\",), query=\"invoice question\", limit=5)" },
+  vector: { title: "Vector Store (durable tier)", desc: "Any BaseStore with semantic-search support — LangGraph's InMemoryStore with index, PostgresStore, or your own. Only consulted on warm misses, so retrieval cost is paid on a fraction of turns.", code: "vector = InMemoryStore(index={\"embed\": OpenAIEmbeddings(), \"dims\": 1536, \"fields\": [\"text\"]})" },
+  llm:    { title: "LLM", desc: "Any LangChain chat model. The retrieved memory rows are injected into the system prompt; the response is written back into both stores so future turns can recall it.", code: "from langchain_anthropic import ChatAnthropic\nmodel = ChatAnthropic(model=\"claude-opus-4-7\")" },
+};
+
+const $ = (id) => document.getElementById(id);
+const qsa = (sel) => Array.from(document.querySelectorAll(sel));
+
+let currentStrategy = "warm-fallback";
+
+function applyStrategy(name) {
+  currentStrategy = name;
+  const s = STRATEGIES[name];
+
+  // buttons
+  qsa(".strategy-group button").forEach(b => b.classList.toggle("active", b.dataset.strategy === name));
+
+  // edges
+  qsa(".edge").forEach(el => {
+    const cls = Array.from(el.classList).find(c => c.startsWith("e-"));
+    const isActive = cls && s.activeEdges.includes(cls);
+    el.classList.toggle("active", isActive);
+    el.classList.toggle("hidden", !isActive);
+  });
+  qsa(".edge-label").forEach(el => {
+    const cls = Array.from(el.classList).find(c => c.startsWith("e-"));
+    const isActive = cls && s.activeEdges.includes(cls.replace("-label", ""));
+    el.classList.toggle("active", isActive);
+    el.style.opacity = isActive ? 1 : 0.2;
+  });
+
+  // nodes: dim non-participating ones
+  const participants = nodesInPath(s.activeEdges);
+  qsa(".node").forEach(el => {
+    el.classList.toggle("hidden", !participants.has(el.dataset.node));
+  });
+
+  // panel
+  $("panel-title").textContent = s.title;
+  $("panel-desc").innerHTML = s.desc.replace(/`([^`]+)`/g, "<code>$1</code>");
+  $("panel-code").textContent = s.code;
+  $("m-tokens").textContent = s.metrics.tokens;
+  $("m-acc").textContent = s.metrics.acc;
+  $("m-hit").textContent = s.metrics.hit;
+  $("m-vec").textContent = s.metrics.vec;
+  $("m-tokens").classList.toggle("metric-good", s.tokensGood);
+  $("m-hit").classList.toggle("metric-good", s.hitGood);
+}
+
+function nodesInPath(edges) {
+  const map = {
+    "e-user-agent": ["user", "agent"],
+    "e-agent-warm": ["agent", "warm"],
+    "e-agent-llm-direct": ["agent", "llm"],
+    "e-warm-llm": ["warm", "llm"],
+    "e-warm-vector": ["warm", "vector"],
+    "e-vector-llm": ["vector", "llm"],
+    "e-llm-user": ["llm", "user"],
+    "e-llm-warm": ["llm", "warm"],
+    "e-llm-vector": ["llm", "vector"],
+  };
+  const out = new Set();
+  edges.forEach(e => (map[e] || []).forEach(n => out.add(n)));
+  return out;
+}
+
+async function simulate() {
+  const s = STRATEGIES[currentStrategy];
+  const pulse = $("pulse");
+  const points = s.pulsePath;
+  pulse.setAttribute("cx", points[0][0]);
+  pulse.setAttribute("cy", points[0][1]);
+  pulse.classList.add("go");
+  for (let i = 1; i < points.length; i++) {
+    await new Promise(r => setTimeout(r, 700));
+    pulse.setAttribute("cx", points[i][0]);
+    pulse.setAttribute("cy", points[i][1]);
+  }
+  await new Promise(r => setTimeout(r, 700));
+  pulse.classList.remove("go");
+}
+
+function showNodeDetail(name) {
+  const n = NODES[name]; if (!n) return;
+  $("panel-title").textContent = n.title;
+  $("panel-desc").innerHTML = n.desc.replace(/`([^`]+)`/g, "<code>$1</code>");
+  $("panel-code").textContent = n.code;
+}
+
+qsa(".strategy-group button").forEach(b => b.addEventListener("click", () => applyStrategy(b.dataset.strategy)));
+qsa(".node").forEach(el => el.addEventListener("click", () => showNodeDetail(el.dataset.node)));
+$("simulate").addEventListener("click", simulate);
+
+applyStrategy("warm-fallback");
+</script>
+
+</body>
+</html>
