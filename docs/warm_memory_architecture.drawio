@@ -46,8 +46,8 @@
         <mxCell id="e7" value="no" style="endArrow=classic;html=1;strokeColor=#F0883E;strokeWidth=2.5;exitX=1;exitY=0.8;entryX=0;entryY=0.2;fontColor=#F0883E;fontSize=11;fontStyle=1;labelBackgroundColor=none;dashed=1;dashPattern=10 6" edge="1" parent="1" source="warmhit" target="longterm"/>
         <mxCell id="e8" style="endArrow=classic;html=1;strokeColor=#3FB950;strokeWidth=2.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=10 6" edge="1" parent="1" source="prompt" target="llm"/>
         <mxCell id="e9" value="fallback" style="endArrow=classic;html=1;strokeColor=#F0883E;strokeWidth=2.5;exitX=0.5;exitY=0;entryX=0.5;entryY=1;fontColor=#F0883E;fontSize=11;fontStyle=1;labelBackgroundColor=none;dashed=1;dashPattern=10 6" edge="1" parent="1" source="longterm" target="llm"/>
-        <mxCell id="e10" value="capture output (decorator)" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=0;exitY=0.5;entryX=0.5;entryY=0;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none;edgeStyle=orthogonalEdgeStyle" edge="1" parent="1" source="llm" target="agent"/>
-        <mxCell id="e11" value="update warm memory" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=0.4;exitY=0;entryX=0.2;entryY=1;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none" edge="1" parent="1" source="agent" target="warm"/>
+        <mxCell id="e10" value="capture output (decorator)" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none;edgeStyle=orthogonalEdgeStyle;jettySize=auto;orthogonalLoop=1" edge="1" parent="1" source="llm" target="agent"/>
+        <mxCell id="e11" value="update warm memory" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=0.2;exitY=0;entryX=0.4;entryY=0;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none;edgeStyle=orthogonalEdgeStyle;jettySize=auto;orthogonalLoop=1" edge="1" parent="1" source="agent" target="warm"/>
 
       </root>
     </mxGraphModel>
