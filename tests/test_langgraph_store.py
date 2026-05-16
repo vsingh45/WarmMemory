@@ -85,6 +85,23 @@ class WarmStoreSearchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.store.search(("alice",), filter={"priority": {"$bogus": 1}})
 
+    def test_comparison_operator_missing_field_excludes_row(self) -> None:
+        # Row n2 has priority=5; n1 has priority=1; n3 has priority=3.
+        # A filter for $gt on a non-existent field returns no rows
+        # (graceful False rather than TypeError, even though the underlying
+        # float() coercion would otherwise crash on None).
+        results = self.store.search(("alice",), filter={"nonexistent_field": {"$gt": 0}})
+        self.assertEqual(results, [])
+
+    def test_negative_limit_returns_empty(self) -> None:
+        self.assertEqual(self.store.search(("alice",), limit=-1), [])
+        self.assertEqual(self.store.search(("alice",), limit=0), [])
+
+    def test_negative_offset_treated_as_zero(self) -> None:
+        positive = self.store.search(("alice",), limit=10, offset=0)
+        negative = self.store.search(("alice",), limit=10, offset=-5)
+        self.assertEqual([r.key for r in positive], [r.key for r in negative])
+
     def test_search_limit_and_offset(self) -> None:
         all_three = self.store.search(("alice",), limit=10)
         self.assertEqual(len(all_three), 3)
@@ -135,6 +152,32 @@ class WarmStoreNamespaceTests(unittest.TestCase):
         self.assertIn(("alice", "v1"), keys)
         self.assertIn(("bob", "v1"), keys)
         self.assertNotIn(("alice", "v2"), keys)
+
+
+class WarmStoreKeyGenerationTests(unittest.TestCase):
+    def test_next_key_is_monotonic_per_namespace(self) -> None:
+        store = WarmStore(capacity=4)
+        self.assertEqual(store.next_key(("alice",)), "exchange-1")
+        self.assertEqual(store.next_key(("alice",)), "exchange-2")
+        self.assertEqual(store.next_key(("alice",)), "exchange-3")
+        # separate counter per namespace
+        self.assertEqual(store.next_key(("bob",)), "exchange-1")
+
+    def test_next_key_supports_custom_prefix(self) -> None:
+        store = WarmStore(capacity=4)
+        self.assertEqual(store.next_key(("alice",), prefix="turn-"), "turn-1")
+        self.assertEqual(store.next_key(("alice",), prefix="turn-"), "turn-2")
+
+    def test_next_key_not_reset_by_eviction(self) -> None:
+        # Regression test: with capacity=2 and 5 puts, the old `len(buffer)+1`
+        # scheme produced colliding keys (overwrites instead of new entries).
+        store = WarmStore(capacity=2)
+        for _ in range(5):
+            key = store.next_key(("alice",))
+            store.put(("alice",), key, {"text": f"row {key}"})
+
+        items = store.search(("alice",), limit=10)
+        self.assertEqual({i.key for i in items}, {"exchange-4", "exchange-5"})
 
 
 class WarmStoreCapacityTests(unittest.TestCase):
@@ -201,6 +244,54 @@ class WarmStoreEmbeddingsScorerTests(unittest.TestCase):
 
         results = store.search(("alice",), query="the cat sat on the mat")
         self.assertEqual(results[0].key, "n1")
+
+    def test_embedding_cache_is_bounded_lru(self) -> None:
+        embeddings = DeterministicFakeEmbedding(size=8)
+        scorer = EmbeddingsImportanceScorer(embeddings, cache_size=3)
+
+        # Prime the cache with 5 distinct strings; LRU should keep the last 3.
+        for i in range(5):
+            scorer._embed(f"content-{i}")
+
+        self.assertEqual(scorer.cache_size(), 3)
+
+    def test_embedding_cache_can_be_disabled(self) -> None:
+        embeddings = DeterministicFakeEmbedding(size=8)
+        scorer = EmbeddingsImportanceScorer(embeddings, cache_size=0)
+        scorer._embed("hello")
+        scorer._embed("world")
+        self.assertEqual(scorer.cache_size(), 0)
+
+    def test_negative_cache_size_rejected(self) -> None:
+        embeddings = DeterministicFakeEmbedding(size=8)
+        with self.assertRaises(ValueError):
+            EmbeddingsImportanceScorer(embeddings, cache_size=-1)
+
+
+class AgentMessageContentTests(unittest.TestCase):
+    def test_flatten_list_of_text_blocks(self) -> None:
+        from warm_memory.langgraph.agent import _flatten_message_content
+
+        content = [
+            {"type": "text", "text": "Hello"},
+            {"type": "text", "text": "world"},
+        ]
+        self.assertEqual(_flatten_message_content(content), "Hello\nworld")
+
+    def test_flatten_string_passthrough(self) -> None:
+        from warm_memory.langgraph.agent import _flatten_message_content
+
+        self.assertEqual(_flatten_message_content("plain text"), "plain text")
+
+    def test_flatten_ignores_non_text_blocks(self) -> None:
+        from warm_memory.langgraph.agent import _flatten_message_content
+
+        content = [
+            {"type": "text", "text": "first"},
+            {"type": "tool_use", "input": {"x": 1}},
+            {"type": "text", "text": "second"},
+        ]
+        self.assertEqual(_flatten_message_content(content), "first\nsecond")
 
 
 if __name__ == "__main__":

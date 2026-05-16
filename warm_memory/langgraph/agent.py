@@ -21,6 +21,31 @@ from langgraph.graph import END, START, StateGraph
 from .store import WarmStore
 
 
+def _flatten_message_content(content: Any) -> str:
+    """
+    Normalize an AIMessage.content value to a plain string.
+
+    Newer LangChain chat models can return `content` as a list of content
+    blocks (e.g., `[{"type": "text", "text": "..."}, ...]`) instead of a
+    plain string. Storing the list repr in warm memory is useless for
+    keyword/embedding scoring, so flatten to text here.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                if block.get("type") == "text" and isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+                elif isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+        return "\n".join(parts)
+    return str(content)
+
+
 class WarmAgentState(TypedDict, total=False):
     query: str
     namespace: tuple[str, ...]
@@ -81,7 +106,8 @@ def build_warm_memory_agent(
             HumanMessage(content=state.get("query", "")),
         ]
         ai_message = model.invoke(messages)
-        text = ai_message.content if isinstance(ai_message, AIMessage) else str(ai_message)
+        raw_content = ai_message.content if isinstance(ai_message, AIMessage) else ai_message
+        text = _flatten_message_content(raw_content)
         return {"response": text}
 
     def memory_write(state: WarmAgentState) -> dict[str, Any]:
@@ -90,7 +116,7 @@ def build_warm_memory_agent(
         response = state.get("response", "")
         if not query and not response:
             return {}
-        next_key = f"exchange-{store.size(namespace) + 1}"
+        next_key = store.next_key(namespace, prefix="exchange-")
         store.put(
             namespace,
             next_key,

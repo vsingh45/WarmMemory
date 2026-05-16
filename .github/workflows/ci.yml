@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package with LangGraph extra
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[langgraph]"
+
+      - name: Run test suite
+        run: python -m unittest discover -s tests -v
+
+      - name: Run legacy benchmark (smoke)
+        run: python scripts/run_benchmark.py
+
+      - name: Run LangGraph benchmark (smoke)
+        run: python scripts/run_langgraph_benchmark.py
+
+      - name: Upload benchmark reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-reports-py${{ matrix.python-version }}
+          path: reports/*.md
+          if-no-files-found: warn
