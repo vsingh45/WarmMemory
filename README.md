@@ -1,5 +1,6 @@
 # WarmMemory
 
+[![PyPI](https://img.shields.io/pypi/v/warm-memory.svg)](https://pypi.org/project/warm-memory/)
 [![CI](https://github.com/vsingh45/WarmMemory/actions/workflows/ci.yml/badge.svg)](https://github.com/vsingh45/WarmMemory/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -82,7 +83,15 @@ The benchmark models a practical split:
 ## Installation
 
 ```bash
-python3 -m pip install -e .
+pip install warm-memory
+# or with the LangGraph integration:
+pip install warm-memory[langgraph]
+```
+
+Or install from source for development:
+
+```bash
+python3 -m pip install -e ".[langgraph]"
 ```
 
 ## Quick Start
@@ -179,10 +188,10 @@ python3 -m unittest discover -s tests -v
 ## LangGraph Integration
 
 WarmMemory ships an optional `warm_memory.langgraph` module that plugs directly
-into the LangGraph ecosystem. Install the extra:
+into the LangGraph ecosystem. Install with the extra:
 
 ```bash
-python3 -m pip install -e ".[langgraph]"
+pip install warm-memory[langgraph]
 ```
 
 ### Drop-in `BaseStore`
@@ -263,8 +272,9 @@ to compare against real semantic search.
 - record actual model latency and token usage from a live LLM pipeline
 - add charts and experiment summaries for publication-style reporting
 - TTL support for the LangGraph `BaseStore`
-- publish `warm-memory` to PyPI and propose inclusion in LangGraph's third-party
-  store list
+- ~~publish `warm-memory` to PyPI~~ ([live at v0.2.1](https://pypi.org/project/warm-memory/))
+- propose inclusion in LangGraph's third-party store list (LangChain Forum
+  proposal in flight)
 
 ## License
 
