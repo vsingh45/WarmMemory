@@ -137,6 +137,32 @@ class WarmStoreNamespaceTests(unittest.TestCase):
         self.assertNotIn(("alice", "v2"), keys)
 
 
+class WarmStoreKeyGenerationTests(unittest.TestCase):
+    def test_next_key_is_monotonic_per_namespace(self) -> None:
+        store = WarmStore(capacity=4)
+        self.assertEqual(store.next_key(("alice",)), "exchange-1")
+        self.assertEqual(store.next_key(("alice",)), "exchange-2")
+        self.assertEqual(store.next_key(("alice",)), "exchange-3")
+        # separate counter per namespace
+        self.assertEqual(store.next_key(("bob",)), "exchange-1")
+
+    def test_next_key_supports_custom_prefix(self) -> None:
+        store = WarmStore(capacity=4)
+        self.assertEqual(store.next_key(("alice",), prefix="turn-"), "turn-1")
+        self.assertEqual(store.next_key(("alice",), prefix="turn-"), "turn-2")
+
+    def test_next_key_not_reset_by_eviction(self) -> None:
+        # Regression test: with capacity=2 and 5 puts, the old `len(buffer)+1`
+        # scheme produced colliding keys (overwrites instead of new entries).
+        store = WarmStore(capacity=2)
+        for _ in range(5):
+            key = store.next_key(("alice",))
+            store.put(("alice",), key, {"text": f"row {key}"})
+
+        items = store.search(("alice",), limit=10)
+        self.assertEqual({i.key for i in items}, {"exchange-4", "exchange-5"})
+
+
 class WarmStoreCapacityTests(unittest.TestCase):
     def test_per_namespace_eviction_does_not_cross_tenants(self) -> None:
         store = WarmStore(capacity=2)

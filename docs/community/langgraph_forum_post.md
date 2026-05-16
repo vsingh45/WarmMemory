@@ -1,12 +1,15 @@
-# Draft: LangGraph Proposal Issue
+# Draft: LangChain Forum thread
 
-**Where to post:** https://github.com/langchain-ai/langgraph/issues/new
-**Title:** `Proposal: Warm Memory Implementation`
-**Suggested labels:** `enhancement`, `discussion`
+**Where to post:** https://forum.langchain.com
+**Suggested category:** LangGraph / Show and tell (or whichever category fits feature proposals)
+**Title:** `Proposal: Warm Memory Implementation — a capacity-bounded BaseStore for LangGraph`
 
-> The maintainer guidance for this kind of contribution is to **open an issue
-> titled "Proposal: Warm Memory Implementation"** with the architectural
-> approach before sending a PR. This draft follows that exact path.
+> **Why the Forum and not a GitHub Issue?** The `langchain-ai/langgraph`
+> "Create issue" UI only exposes Bug Report, Privileged (maintainer-only),
+> security, and Documentation templates — no feature/proposal template.
+> The Forum is the canonical entry for proposals and architectural
+> discussions; maintainers convert Forum threads to tracking issues
+> themselves if/when the work is greenlit.
 
 ---
 
@@ -16,8 +19,8 @@ Hi LangGraph team,
 
 I'd like to propose a `BaseStore` implementation that adds **per-namespace
 capacity-bounded warm memory** in front of a vector or durable store. Before
-opening any PR I'm following the contribution guidance and posting this as
-an issue so the abstraction framing can be reviewed.
+opening any PR I'm following the contribution guidance and posting the
+proposal here so the abstraction framing can be reviewed by maintainers.
 
 **Repo:** https://github.com/vsingh45/WarmMemory
 **Package:** `warm-memory[langgraph]` (Python 3.11+, MIT licence)
@@ -70,7 +73,7 @@ print(result["recalled"])
 # [{'key': 'exchange-1', 'score': 0.55..., 'value': {'user': '...', 'assistant': '...'}}]
 ```
 
-The package ships 28 tests (20 of which are `BaseStore` conformance for
+The package ships 31 tests (23 of which are `BaseStore` conformance for
 `WarmStore`), CI on Python 3.11 / 3.12 / 3.13, and a comparative benchmark
 in the repo.
 

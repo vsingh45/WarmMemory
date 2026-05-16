@@ -90,7 +90,7 @@ def build_warm_memory_agent(
         response = state.get("response", "")
         if not query and not response:
             return {}
-        next_key = f"exchange-{store.size(namespace) + 1}"
+        next_key = store.next_key(namespace, prefix="exchange-")
         store.put(
             namespace,
             next_key,

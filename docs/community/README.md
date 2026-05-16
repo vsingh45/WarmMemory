@@ -1,67 +1,54 @@
 # Community Contribution Drafts
 
-This directory holds **drafts** of issues/posts targeting the LangGraph and
-LangChain community. They are checked in so:
+This directory holds **drafts** of posts targeting the LangChain / LangGraph
+community. They are checked in so:
 
 - the messaging stays in sync with the actual code and benchmark numbers,
-- the LangGraph maintainers' contribution guidance is reflected in the
-  drafts themselves,
+- the LangGraph contribution path is reflected in the drafts themselves,
 - anyone (you, a collaborator, future-you) can post them without
   reconstructing them from memory.
 
-## The maintainer-specified path
+## The actual contribution path (as of May 2026)
 
-The LangGraph maintainer guidance for proposing a feature like this is
-explicit and we follow it:
+The `langchain-ai/langgraph` GitHub issue tracker **does not currently
+accept feature / proposal issues** — the "Create issue" UI offers only Bug
+Report, Privileged (maintainer-only), security, and Documentation
+templates. The `LangChain Forum` tile on that page funnels everything else
+to https://forum.langchain.com, which is the canonical entry for
+proposals, RFCs, and architectural discussions.
 
-1. **Open an Issue titled "Proposal: Warm Memory Implementation"** on
-   `langchain-ai/langgraph` with the architectural approach. Cover the
-   four required sections: define the abstraction, give a usage pattern,
-   describe performance and scaling, and explain integration with existing
-   tools.
-2. **Share a minimal reproducible example** in the proposal — a script
-   demonstrating the memory implementation within a LangGraph workflow.
-3. **Request review.** Once the abstraction is settled, open a draft Pull
-   Request for implementation-level feedback.
+The contribution path is therefore:
 
-The LangChain Forum (https://forum.langchain.com) is a good informal venue
-to ask for early eyes on the proposal *before* opening the Issue. Discord
-and Slack are deprecated for LangChain community engagement.
+1. **Post the proposal on the LangChain Forum**
+   (https://forum.langchain.com) — that's the maintainer-specified entry
+   for non-bug discussions. Use the body of
+   [`langgraph_forum_post.md`](langgraph_forum_post.md).
+2. **Wait for maintainer feedback.** A maintainer engaging on the Forum
+   may:
+   - Direct you to open a draft PR (docs or code) once the abstraction is
+     settled.
+   - Convert the Forum thread into a tracking Issue themselves (they have
+     a "Privileged" template the public can't use).
+   - Suggest changes to the framing before any code work happens.
+3. **Open a draft PR** if/when greenlit — docs PR for a third-party-stores
+   link, or a code PR factoring out `langgraph-store-warm` into the
+   monorepo, depending on which path maintainers prefer.
+
+## What about a GitHub Issue?
+
+The "Bug Report" template on `langchain-ai/langgraph` is **not** the right
+fit for this proposal — it isn't a bug. The
+[`langgraph_issue_third_party_stores.md`](langgraph_issue_third_party_stores.md)
+draft is preserved for if/when a maintainer says "yes, open an issue for
+the third-party-stores index page." Until then it stays as a draft.
 
 ## Drafts
 
 | File | Venue | Purpose |
 |---|---|---|
-| [`proposal.md`](proposal.md) | The canonical proposal document referenced from the Issue. Lives in this repo as the linkable source of truth. | Full four-section proposal with abstraction, usage pattern, scaling, and integration analysis |
-| [`langgraph_discussion.md`](langgraph_discussion.md) | `langchain-ai/langgraph` Issues — title `Proposal: Warm Memory Implementation` | Short triage-friendly Issue body that links to `proposal.md` and the minimal example |
-| [`langgraph_issue_third_party_stores.md`](langgraph_issue_third_party_stores.md) | `langchain-ai/langgraph` Issues | Separate Issue proposing a docs index for third-party `BaseStore` implementations |
-
-## Suggested posting order
-
-1. **Optional pre-step:** post a short thread on
-   [forum.langchain.com](https://forum.langchain.com) asking for informal
-   eyes on the proposal. Low stakes, fast feedback on framing.
-2. **The Issue:** post the body from
-   [`langgraph_discussion.md`](langgraph_discussion.md) on
-   `langchain-ai/langgraph` Issues with the title
-   **"Proposal: Warm Memory Implementation"**. This is the
-   maintainer-specified entry point. Link to
-   [`proposal.md`](proposal.md) and
-   [`examples/minimal_langgraph_warm_memory.py`](../../examples/minimal_langgraph_warm_memory.py)
-   from the body.
-3. **Wait for maintainer guidance** on direction:
-   - if they prefer it as a third-party package, the work is essentially
-     done — they may suggest a docs link-out or a third-party-stores
-     index page (which is the subject of
-     [`langgraph_issue_third_party_stores.md`](langgraph_issue_third_party_stores.md)).
-   - if they want it factored into the monorepo as
-     `langgraph-store-warm`, that's a draft PR against
-     `libs/store-warm/` following the `langgraph-checkpoint-postgres`
-     pattern.
-4. **If applicable:** open the third-party-stores Issue after the proposal
-   has a green light.
-5. **Open the draft PR** (docs or code, depending on maintainer steer)
-   once the abstraction is agreed.
+| [`proposal.md`](proposal.md) | This repo — linked from the Forum thread | Full four-section proposal with abstraction, usage pattern, scaling, and integration analysis |
+| [`langgraph_forum_post.md`](langgraph_forum_post.md) | https://forum.langchain.com | Triage-friendly Forum thread body that links to `proposal.md` and the minimal example |
+| [`langgraph_issue_third_party_stores.md`](langgraph_issue_third_party_stores.md) | `langchain-ai/langgraph` Issues — only if a maintainer asks for it | Draft of an Issue proposing a docs index for third-party `BaseStore` implementations |
 
 ## Tone guidelines
 

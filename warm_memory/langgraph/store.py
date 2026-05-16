@@ -109,7 +109,7 @@ class WarmStore(BaseStore):
       semantic search)
     """
 
-    __slots__ = ("capacity", "scorer", "_buffers", "_namespace_lock")
+    __slots__ = ("capacity", "scorer", "_buffers", "_key_counters")
 
     def __init__(
         self,
@@ -122,7 +122,20 @@ class WarmStore(BaseStore):
         self.capacity = capacity
         self.scorer = scorer or KeywordImportanceScorer()
         self._buffers: dict[tuple[str, ...], WarmMemoryBuffer] = {}
-        self._namespace_lock = asyncio.Lock()
+        self._key_counters: dict[tuple[str, ...], int] = {}
+
+    def next_key(self, namespace: tuple[str, ...], *, prefix: str = "exchange-") -> str:
+        """Return a fresh, monotonically-increasing key within a namespace.
+
+        Unlike `len(buffer) + 1`, this counter is *never* reset by eviction —
+        so keys remain unique across the entire lifetime of the namespace
+        even after capacity-bounded eviction removes older entries.
+
+        Useful when writing a stream of items (e.g., conversation turns) into
+        a namespace where you don't have a natural domain key.
+        """
+        self._key_counters[namespace] = self._key_counters.get(namespace, 0) + 1
+        return f"{prefix}{self._key_counters[namespace]}"
 
     def _buffer_for(self, namespace: tuple[str, ...]) -> WarmMemoryBuffer:
         existing = self._buffers.get(namespace)
