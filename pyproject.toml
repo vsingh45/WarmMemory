@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "warm-memory"
-version = "0.2.0"
+version = "0.2.1"
 description = "Capacity-bounded warm memory for LLM agents, with a LangGraph BaseStore implementation, embeddings-based importance scoring, and a comparative benchmark."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 authors = [
   { name = "Vivek Singh" },
 ]
@@ -29,7 +29,6 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
@@ -40,13 +39,13 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "pandas>=2.2.0",
+  "pandas>=2.2.0,<3.0",
 ]
 
 [project.optional-dependencies]
 langgraph = [
-  "langgraph>=1.0",
-  "langchain-core>=1.0",
+  "langgraph>=1.0,<2.0",
+  "langchain-core>=1.0,<2.0",
 ]
 dev = [
   "build>=1.2",

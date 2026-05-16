@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-16
+
+### Fixed
+
+- `build_warm_memory_agent` previously generated exchange keys as
+  `f"exchange-{store.size(namespace) + 1}"`. Once a namespace hit its
+  capacity, `size` stayed pinned and every subsequent put silently
+  overwrote an earlier exchange instead of creating a new one. Now uses
+  `WarmStore.next_key()`, a per-namespace monotonic counter that is
+  never reset by eviction.
+- `respond` node now flattens `AIMessage.content` when newer LangChain
+  chat models return content as a list of blocks (e.g.,
+  `[{"type": "text", "text": "..."}]`) — previously the list-repr was
+  stored in warm memory, breaking keyword/embedding scoring.
+- `WarmStore` filter operators `$gt`/`$gte`/`$lt`/`$lte` now use
+  `float()` coercion to match `InMemoryStore` semantics, with a
+  graceful `False` return on uncoercible values (rows missing the field
+  no longer crash the comparison).
+- `WarmStore.search` clamps negative `limit` / `offset` to zero instead
+  of returning surprising slices.
+
+### Added
+
+- `WarmStore.next_key(namespace, prefix=...)` — public, documented API.
+- `EmbeddingsImportanceScorer` now has a **bounded LRU cache**
+  (default 4096 entries; configurable via `cache_size=`, set to `0` to
+  disable). New `cache_clear()` and `cache_size()` helpers.
+- `WarmMemoryBuffer.find_index_by_metadata`,
+  `WarmMemoryBuffer.drop_at`, `WarmMemoryBuffer.iter_rows` — small
+  public mutation/iteration helpers that replace the previous
+  `_frame`-private-attribute leak from `WarmStore` into the buffer.
+
+### Changed
+
+- CI workflow: added `concurrency:` group (cancel in-progress on new
+  pushes) and `timeout-minutes: 15` per job. Explicit
+  `permissions: contents: read`.
+- Publish workflow: pinned `pypa/gh-action-pypi-publish` to commit SHA
+  (`cef221092ed1bacb1cc03d23a2d87d1d172e277b`, v1.14.0) for supply-chain
+  hardening. Added a `twine check` validation step before upload.
+  `workflow_dispatch` now requires `dry_run=false` **and** a `v*` tag
+  ref to actually publish — blocks an accidental "ship from main."
+  Manual `dry_run` default flipped to `"true"`.
+- `pyproject.toml`: SPDX-style `license = "MIT"` (requires
+  `setuptools>=77`). Removed the now-redundant license classifier.
+  Capped open dependency ranges (`pandas<3`, `langgraph<2`,
+  `langchain-core<2`).
+- `WarmStore` removed the declared-but-unused `asyncio.Lock()` slot
+  (was misleading about thread safety).
+
 ## [0.2.0] - 2026-05-15
 
 ### Added
@@ -52,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deterministic benchmark over `recency` / `relevance` / `fallback`
   strategies, HTML documentation.
 
-[Unreleased]: https://github.com/vsingh45/WarmMemory/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/vsingh45/WarmMemory/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/vsingh45/WarmMemory/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/vsingh45/WarmMemory/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vsingh45/WarmMemory/releases/tag/v0.1.0

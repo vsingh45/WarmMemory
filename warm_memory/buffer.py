@@ -125,6 +125,39 @@ class WarmMemoryBuffer:
     def clear(self) -> None:
         self._frame = pd.DataFrame(columns=self.COLUMNS)
 
+    def find_index_by_metadata(self, field: str, value: Any) -> int | None:
+        """
+        Return the integer index of the first row whose `metadata[field]` equals `value`.
+
+        Used by external mutation paths (e.g., key-based stores layered on top of
+        the buffer) that need to update or delete a specific logical entry without
+        scanning the dataframe themselves.
+        """
+        if self._frame.empty:
+            return None
+        for idx, metadata in enumerate(self._frame["metadata"].tolist()):
+            if isinstance(metadata, dict) and metadata.get(field) == value:
+                return idx
+        return None
+
+    def drop_at(self, index: int) -> None:
+        """
+        Remove the row at the given positional index.
+
+        Pairs with `find_index_by_metadata` to give external code a clean mutation
+        path without reaching into private dataframe internals.
+        """
+        if index < 0 or index >= len(self._frame.index):
+            return
+        self._frame = self._frame.drop(self._frame.index[index]).reset_index(drop=True)
+
+    def iter_rows(self) -> list[dict[str, Any]]:
+        """
+        Return a list of row dicts in insertion order. Use this for read-only
+        scans (e.g., search) instead of poking at the live dataframe.
+        """
+        return self._frame.to_dict("records")
+
     def _evict_over_capacity(self) -> None:
         overflow = len(self._frame.index) - self.capacity
         if overflow <= 0:

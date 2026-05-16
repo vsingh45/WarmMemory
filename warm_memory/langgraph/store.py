@@ -22,14 +22,42 @@ from ..buffer import WarmMemoryBuffer
 from ..scoring import ImportanceScorer, KeywordImportanceScorer
 
 
-_FILTER_OPS = {
-    "$eq": lambda a, b: a == b,
-    "$ne": lambda a, b: a != b,
-    "$gt": lambda a, b: a is not None and b is not None and a > b,
-    "$gte": lambda a, b: a is not None and b is not None and a >= b,
-    "$lt": lambda a, b: a is not None and b is not None and a < b,
-    "$lte": lambda a, b: a is not None and b is not None and a <= b,
-}
+_STORE_KEY = "__store_key__"
+_STORE_VALUE = "__store_value__"
+_STORE_CREATED_AT = "__store_created_at__"
+_STORE_UPDATED_AT = "__store_updated_at__"
+
+
+def _apply_operator(value: Any, operator: str, op_value: Any) -> bool:
+    """
+    Apply a single MongoDB-style filter operator.
+
+    Matches LangGraph's `InMemoryStore` semantics for `$eq` / `$ne` (direct
+    equality, any type) and `$gt` / `$gte` / `$lt` / `$lte` (float coercion).
+    Diverges in one place: when either side cannot be coerced to float (e.g.,
+    a missing field on a row), comparison operators return `False` rather
+    than raising `TypeError`. This is the more permissive behavior — rows
+    that don't carry the field simply do not match the comparison, which
+    matches what most users expect from a filter.
+    """
+    if operator == "$eq":
+        return value == op_value
+    if operator == "$ne":
+        return value != op_value
+    if operator in ("$gt", "$gte", "$lt", "$lte"):
+        try:
+            a = float(value)
+            b = float(op_value)
+        except (TypeError, ValueError):
+            return False
+        if operator == "$gt":
+            return a > b
+        if operator == "$gte":
+            return a >= b
+        if operator == "$lt":
+            return a < b
+        return a <= b
+    raise ValueError(f"Unsupported filter operator: {operator}")
 
 
 def _matches_filter(value: Mapping[str, Any], filter_spec: Mapping[str, Any] | None) -> bool:
@@ -39,10 +67,7 @@ def _matches_filter(value: Mapping[str, Any], filter_spec: Mapping[str, Any] | N
         actual = value.get(field_name)
         if isinstance(condition, Mapping):
             for op_name, expected in condition.items():
-                op = _FILTER_OPS.get(op_name)
-                if op is None:
-                    raise ValueError(f"Unsupported filter operator: {op_name}")
-                if not op(actual, expected):
+                if not _apply_operator(actual, op_name, expected):
                     return False
         else:
             if actual != condition:
@@ -107,6 +132,10 @@ class WarmStore(BaseStore):
     - natural-language `query` ranked by a pluggable ImportanceScorer
       (defaults to KeywordImportanceScorer; pass EmbeddingsImportanceScorer for
       semantic search)
+
+    WarmStore is not thread-safe. The default ImportanceScorer (`KeywordImportanceScorer`)
+    has no shared state; `EmbeddingsImportanceScorer` has a bounded LRU cache. Wrap
+    calls in a lock if you share a single store across threads.
     """
 
     __slots__ = ("capacity", "scorer", "_buffers", "_key_counters")
@@ -145,23 +174,14 @@ class WarmStore(BaseStore):
         self._buffers[namespace] = buffer
         return buffer
 
-    def _find_row_index(self, buffer: WarmMemoryBuffer, key: str) -> int | None:
-        frame = buffer._frame
-        if frame.empty:
-            return None
-        for idx, metadata in enumerate(frame["metadata"].tolist()):
-            if isinstance(metadata, dict) and metadata.get("__store_key__") == key:
-                return idx
-        return None
-
     def _row_to_item(self, namespace: tuple[str, ...], row: Mapping[str, Any]) -> Item:
         metadata = row["metadata"] if isinstance(row.get("metadata"), dict) else {}
         return Item(
-            value=dict(metadata.get("__store_value__") or {}),
-            key=str(metadata.get("__store_key__", "")),
+            value=dict(metadata.get(_STORE_VALUE) or {}),
+            key=str(metadata.get(_STORE_KEY, "")),
             namespace=namespace,
-            created_at=metadata.get("__store_created_at__") or datetime.now(timezone.utc),
-            updated_at=metadata.get("__store_updated_at__") or datetime.now(timezone.utc),
+            created_at=metadata.get(_STORE_CREATED_AT) or datetime.now(timezone.utc),
+            updated_at=metadata.get(_STORE_UPDATED_AT) or datetime.now(timezone.utc),
         )
 
     def _row_to_search_item(
@@ -173,10 +193,10 @@ class WarmStore(BaseStore):
         metadata = row["metadata"] if isinstance(row.get("metadata"), dict) else {}
         return SearchItem(
             namespace=namespace,
-            key=str(metadata.get("__store_key__", "")),
-            value=dict(metadata.get("__store_value__") or {}),
-            created_at=metadata.get("__store_created_at__") or datetime.now(timezone.utc),
-            updated_at=metadata.get("__store_updated_at__") or datetime.now(timezone.utc),
+            key=str(metadata.get(_STORE_KEY, "")),
+            value=dict(metadata.get(_STORE_VALUE) or {}),
+            created_at=metadata.get(_STORE_CREATED_AT) or datetime.now(timezone.utc),
+            updated_at=metadata.get(_STORE_UPDATED_AT) or datetime.now(timezone.utc),
             score=score,
         )
 
@@ -184,81 +204,93 @@ class WarmStore(BaseStore):
         buffer = self._buffers.get(op.namespace)
         if buffer is None:
             return None
-        idx = self._find_row_index(buffer, op.key)
+        idx = buffer.find_index_by_metadata(_STORE_KEY, op.key)
         if idx is None:
             return None
-        row = buffer._frame.iloc[idx].to_dict()
-        return self._row_to_item(op.namespace, row)
+        rows = buffer.iter_rows()
+        return self._row_to_item(op.namespace, rows[idx])
 
     def _do_put(self, op: PutOp) -> None:
         if op.value is None:
             buffer = self._buffers.get(op.namespace)
             if buffer is None:
                 return
-            idx = self._find_row_index(buffer, op.key)
+            idx = buffer.find_index_by_metadata(_STORE_KEY, op.key)
             if idx is None:
                 return
-            buffer._frame = buffer._frame.drop(buffer._frame.index[idx]).reset_index(drop=True)
+            buffer.drop_at(idx)
             return
 
         buffer = self._buffer_for(op.namespace)
         now = datetime.now(timezone.utc)
-        existing_idx = self._find_row_index(buffer, op.key)
+        existing_idx = buffer.find_index_by_metadata(_STORE_KEY, op.key)
         created_at = now
         if existing_idx is not None:
-            old_metadata = buffer._frame.iloc[existing_idx]["metadata"]
+            old_row = buffer.iter_rows()[existing_idx]
+            old_metadata = old_row.get("metadata") if isinstance(old_row, dict) else None
             if isinstance(old_metadata, dict):
-                created_at = old_metadata.get("__store_created_at__") or now
-            buffer._frame = buffer._frame.drop(buffer._frame.index[existing_idx]).reset_index(drop=True)
+                created_at = old_metadata.get(_STORE_CREATED_AT) or now
+            buffer.drop_at(existing_idx)
 
         content = _extract_search_text(op.value)
         buffer.add(
             role="item",
             content=content,
             metadata={
-                "__store_key__": op.key,
-                "__store_value__": dict(op.value),
-                "__store_created_at__": created_at,
-                "__store_updated_at__": now,
+                _STORE_KEY: op.key,
+                _STORE_VALUE: dict(op.value),
+                _STORE_CREATED_AT: created_at,
+                _STORE_UPDATED_AT: now,
             },
         )
 
     def _do_search(self, op: SearchOp) -> list[SearchItem]:
+        limit = max(0, op.limit)
+        offset = max(0, op.offset)
+        if limit == 0:
+            return []
+
         matched_namespaces = [
             ns for ns in self._buffers.keys() if _starts_with_prefix(ns, op.namespace_prefix)
         ]
         candidates: list[tuple[tuple[str, ...], dict[str, Any], float | None]] = []
+        has_query = bool(op.query and op.query.strip())
 
         for namespace in matched_namespaces:
             buffer = self._buffers[namespace]
-            if op.query and op.query.strip():
+            if has_query:
                 ranked = buffer.relevant(op.query, limit=len(buffer))
                 for _, row in ranked.iterrows():
                     metadata = row["metadata"] if isinstance(row.get("metadata"), dict) else {}
-                    value = dict(metadata.get("__store_value__") or {})
+                    value = dict(metadata.get(_STORE_VALUE) or {})
                     if not _matches_filter(value, op.filter):
                         continue
                     candidates.append((namespace, row.to_dict(), float(row.get("score") or 0.0)))
             else:
-                for _, row in buffer._frame.iterrows():
-                    metadata = row["metadata"] if isinstance(row.get("metadata"), dict) else {}
-                    value = dict(metadata.get("__store_value__") or {})
+                for row in buffer.iter_rows():
+                    metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+                    value = dict(metadata.get(_STORE_VALUE) or {})
                     if not _matches_filter(value, op.filter):
                         continue
-                    candidates.append((namespace, row.to_dict(), None))
+                    candidates.append((namespace, row, None))
 
-        if op.query and op.query.strip():
+        if has_query:
             candidates.sort(key=lambda triple: (triple[2] or 0.0), reverse=True)
         else:
             def _updated_at(triple: tuple[tuple[str, ...], dict[str, Any], float | None]) -> datetime:
                 metadata = triple[1].get("metadata") if isinstance(triple[1].get("metadata"), dict) else {}
-                return metadata.get("__store_updated_at__") or datetime.min.replace(tzinfo=timezone.utc)
+                return metadata.get(_STORE_UPDATED_AT) or datetime.min.replace(tzinfo=timezone.utc)
             candidates.sort(key=_updated_at, reverse=True)
 
-        sliced = candidates[op.offset : op.offset + op.limit]
+        sliced = candidates[offset : offset + limit]
         return [self._row_to_search_item(ns, row, score) for ns, row, score in sliced]
 
     def _do_list_namespaces(self, op: ListNamespacesOp) -> list[tuple[str, ...]]:
+        limit = max(0, op.limit)
+        offset = max(0, op.offset)
+        if limit == 0:
+            return []
+
         namespaces = list(self._buffers.keys())
         if op.match_conditions:
             namespaces = [
@@ -271,7 +303,7 @@ class WarmStore(BaseStore):
         else:
             namespaces = sorted(set(namespaces))
 
-        return namespaces[op.offset : op.offset + op.limit]
+        return namespaces[offset : offset + limit]
 
     def batch(self, ops: Iterable[Op]) -> list[Result]:
         ops_list: Sequence[Op] = list(ops)
@@ -291,7 +323,9 @@ class WarmStore(BaseStore):
         return results
 
     async def abatch(self, ops: Iterable[Op]) -> list[Result]:
-        return await asyncio.to_thread(self.batch, list(ops))
+        # Materialize once here; self.batch will not re-copy a list.
+        ops_list = list(ops)
+        return await asyncio.to_thread(self.batch, ops_list)
 
     def namespaces(self) -> list[tuple[str, ...]]:
         return sorted(self._buffers.keys())
