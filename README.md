@@ -175,16 +175,26 @@ The HTML guide explains:
 
 ![WarmMemory architecture](docs/warm_memory_architecture.drawio.svg)
 
-The point of the warm tier is what the **green arrow** shows: on a warm hit,
-the Vector Store is never touched. The orange path is the slow case — warm
-misses pay the extra retrieval round-trip. On the synthetic benchmark,
-~50% of turns take the green path, eliminating that many vector-store calls.
+The pipeline:
 
-After the LLM responds, the new exchange is written back to both stores
-(not drawn — would clutter the picture; see `_do_put` in
-[`warm_memory/langgraph/store.py`](warm_memory/langgraph/store.py) and the
-`memory_write` node in
-[`warm_memory/langgraph/agent.py`](warm_memory/langgraph/agent.py)).
+1. **Agent Runtime** receives the user query in a per-user namespace and
+   triggers two reads: a fast lookup against **WarmMemory** (the in-process
+   working set) and a **Retrieval Ranker** scoring pass over those rows
+   (`KeywordImportanceScorer` by default; swap in `EmbeddingsImportanceScorer`
+   for semantic ranking).
+2. **Warm Hit?** checks the best score against the configured threshold.
+3. **Green path (warm hit):** results flow to **Prompt Builder**, which injects
+   only the top-K rows into the system prompt before invoking the **LLM**.
+   The vector tier is never touched.
+4. **Orange path (warm miss):** the query falls through to **Long-Term Memory**
+   (LangGraph's `InMemoryStore` with an embedding index, `PostgresStore`, or
+   any `BaseStore`) and the LLM consumes those results as fallback.
+5. **Dashed write-back loop:** the LLM response is captured by the decorator
+   and written back to WarmMemory (and mirrored to Long-Term Memory by the
+   `memory_write` node), so future turns can recall it.
+
+On the synthetic benchmark, ~50% of turns take the green path, eliminating
+that many vector-store calls.
 
 The diagram is a `.drawio.svg` file — GitHub renders it inline, and you can
 open it directly at [diagrams.net](https://app.diagrams.net) (File → Open →
