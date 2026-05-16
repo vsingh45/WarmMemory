@@ -173,7 +173,7 @@ The HTML guide explains:
 
 ## Architecture
 
-![WarmMemory architecture](docs/warm_memory_architecture.drawio.svg)
+![WarmMemory architecture](https://raw.githubusercontent.com/vsingh45/WarmMemory/main/docs/warm_memory_architecture.drawio.svg)
 
 The pipeline:
 

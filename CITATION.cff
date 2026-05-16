@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use WarmMemory in research, please cite it using these metadata."
 title: "WarmMemory: a capacity-bounded warm-memory layer for LLM agents with LangGraph integration"
-version: 0.2.1
+version: 0.2.2
 date-released: 2026-05-16
 type: software
 license: MIT
