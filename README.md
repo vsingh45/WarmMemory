@@ -175,9 +175,16 @@ The HTML guide explains:
 
 ![WarmMemory architecture](docs/warm_memory_architecture.drawio.svg)
 
-Solid arrows are read paths; dashed arrows are write-back. WarmStore is queried
-first; the vector tier is only consulted on warm misses, so retrieval cost is
-paid on a fraction of turns.
+The point of the warm tier is what the **green arrow** shows: on a warm hit,
+the Vector Store is never touched. The orange path is the slow case — warm
+misses pay the extra retrieval round-trip. On the synthetic benchmark,
+~50% of turns take the green path, eliminating that many vector-store calls.
+
+After the LLM responds, the new exchange is written back to both stores
+(not drawn — would clutter the picture; see `_do_put` in
+[`warm_memory/langgraph/store.py`](warm_memory/langgraph/store.py) and the
+`memory_write` node in
+[`warm_memory/langgraph/agent.py`](warm_memory/langgraph/agent.py)).
 
 The diagram is a `.drawio.svg` file — GitHub renders it inline, and you can
 open it directly at [diagrams.net](https://app.diagrams.net) (File → Open →
