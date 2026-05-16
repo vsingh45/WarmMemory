@@ -196,10 +196,20 @@ The pipeline:
 On the synthetic benchmark, ~50% of turns take the green path, eliminating
 that many vector-store calls.
 
-The diagram is a `.drawio.svg` file — GitHub renders it inline, and you can
-open it directly at [diagrams.net](https://app.diagrams.net) (File → Open →
-[`docs/warm_memory_architecture.drawio.svg`](docs/warm_memory_architecture.drawio.svg))
-to edit it; the round-trip metadata is preserved on save.
+The diagram ships in two paired formats:
+
+- **[`docs/warm_memory_architecture.drawio.svg`](docs/warm_memory_architecture.drawio.svg)** —
+  the rendered SVG that GitHub displays inline. The decision arrows flow
+  ("marching ants" SMIL animation) so the hot/cold paths read at a glance.
+  Open the file directly in a browser to see the animation; GitHub also
+  renders the animation when displaying the SVG.
+- **[`docs/warm_memory_architecture.drawio`](docs/warm_memory_architecture.drawio)** —
+  the editable mxgraph source. Open at [diagrams.net](https://app.diagrams.net)
+  (File → Open from device) to edit; re-export the SVG when done.
+
+The `.drawio.svg` also embeds the mxgraph XML in its `content` attribute, so
+either file round-trips through the editor — they're kept in sync from the
+same generator script.
 
 For a richer narrated walkthrough, open
 [`docs/warm_memory_guide.html`](docs/warm_memory_guide.html) locally or publish
