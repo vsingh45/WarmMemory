@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "warm-memory"
-version = "0.2.1"
+version = "0.2.2"
 description = "Capacity-bounded warm memory for LLM agents, with a LangGraph BaseStore implementation, embeddings-based importance scoring, and a comparative benchmark."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-05-16
+
+### Changed
+
+- **Architecture diagram rebuilt.** Now a `.drawio.svg` file that renders
+  inline on GitHub *and* round-trips through diagrams.net for editing.
+  Matches the original decision-pipeline structure (User Query → Agent
+  Runtime → WarmMemory + Retrieval Ranker → Warm Hit? → Prompt Builder
+  or Long-Term Memory → LLM Response, with a capture-output loop).
+  Decision arrows are color-coded (green hit path, orange miss path)
+  with SMIL "marching ants" animation so the hot/cold flow reads at a
+  glance.
+- README image URL switched to an absolute
+  `https://raw.githubusercontent.com/vsingh45/WarmMemory/main/...` so
+  the diagram renders on the PyPI project page. Previously the
+  relative path worked on GitHub but produced a broken alt-text on
+  PyPI.
+- Architecture caption rewritten as a numbered pipeline walkthrough
+  that mirrors the diagram and ends with the headline ~50% warm-hit
+  rate from the synthetic benchmark.
+
+### Added
+
+- `docs/warm_memory_architecture.drawio` — pure mxgraph XML source
+  alongside the rendered SVG, for users who want to import directly
+  into diagrams.net via File → Open from device.
+
+### Removed
+
+- `docs/warm_memory_architecture.html` (interactive standalone — useful
+  but added a third diagram to maintain).
+- `docs/warm_memory_architecture.svg` (legacy static, superseded).
+- The Mermaid block in the README (replaced by the drawio.svg, which
+  is a single source of truth).
+
 ## [0.2.1] - 2026-05-16
 
 ### Fixed
@@ -102,7 +137,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deterministic benchmark over `recency` / `relevance` / `fallback`
   strategies, HTML documentation.
 
-[Unreleased]: https://github.com/vsingh45/WarmMemory/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/vsingh45/WarmMemory/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/vsingh45/WarmMemory/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/vsingh45/WarmMemory/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/vsingh45/WarmMemory/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vsingh45/WarmMemory/releases/tag/v0.1.0
