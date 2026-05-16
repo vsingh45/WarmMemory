@@ -3,11 +3,42 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "WarmMemory"
-version = "0.1.0"
-description = "Pandas-backed in-memory interaction buffer for agent research."
+name = "warm-memory"
+version = "0.2.0"
+description = "Capacity-bounded warm memory for LLM agents, with a LangGraph BaseStore implementation, embeddings-based importance scoring, and a comparative benchmark."
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Vivek Singh" },
+]
+keywords = [
+  "llm",
+  "agent",
+  "memory",
+  "langgraph",
+  "langchain",
+  "basestore",
+  "retrieval",
+  "rag",
+  "vector-store",
+  "short-term-memory",
+  "benchmark",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
+]
 dependencies = [
   "pandas>=2.2.0",
 ]
@@ -17,6 +48,16 @@ langgraph = [
   "langgraph>=1.0",
   "langchain-core>=1.0",
 ]
+dev = [
+  "build>=1.2",
+  "twine>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/vsingh45/WarmMemory"
+Repository = "https://github.com/vsingh45/WarmMemory"
+Issues = "https://github.com/vsingh45/WarmMemory/issues"
+Changelog = "https://github.com/vsingh45/WarmMemory/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 include = ["warm_memory*"]

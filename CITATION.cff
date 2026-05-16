@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use WarmMemory in research, please cite it using these metadata."
+title: "WarmMemory: a capacity-bounded warm-memory layer for LLM agents with LangGraph integration"
+version: 0.2.0
+date-released: 2026-05-15
+type: software
+license: MIT
+repository-code: "https://github.com/vsingh45/WarmMemory"
+url: "https://github.com/vsingh45/WarmMemory"
+abstract: >-
+  WarmMemory is a research prototype for short-term memory management in LLM
+  agents. It provides a capacity-bounded warm-memory buffer, a pluggable
+  importance scoring interface, a LangGraph BaseStore implementation with
+  per-namespace eviction, and a benchmark that compares full-history,
+  vector-only, and warm-fallback retrieval strategies.
+authors:
+  - family-names: Singh
+    given-names: Vivek
+keywords:
+  - llm-agents
+  - short-term-memory
+  - langgraph
+  - retrieval
+  - benchmark

@@ -1,5 +1,10 @@
 # WarmMemory
 
+[![CI](https://github.com/vsingh45/WarmMemory/actions/workflows/ci.yml/badge.svg)](https://github.com/vsingh45/WarmMemory/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![LangGraph](https://img.shields.io/badge/LangGraph-BaseStore-1f6feb)](https://langchain-ai.github.io/langgraph/)
+
 WarmMemory is a research prototype for short-term memory management in LLM agents.
 It adds a small in-process working-memory layer that keeps the most recent or most
 relevant interactions close to the agent, reducing repeated retrieval work and helping
