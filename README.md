@@ -173,43 +173,16 @@ The HTML guide explains:
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    U([User query<br/><i>namespace = user_id</i>]) -->|1| A[LangGraph Agent<br/><i>memory_lookup → respond → memory_write</i>]
-    A -->|2. lookup| W[(WarmStore<br/><i>per-namespace bounded buffer</i>)]
-    W -->|hit| L[LLM<br/><i>ChatAnthropic / ChatOpenAI / …</i>]
-    W -.->|miss| V[(Vector Store<br/><i>InMemoryStore / PostgresStore / …</i>)]
-    V -->|fallback| L
-    L -->|response| U
-    L -.->|write-back| W
-    L -.->|write-back| V
-
-    classDef warm    fill:#3a1f1a,stroke:#f78166,color:#fff
-    classDef vector  fill:#2b1f3d,stroke:#a371f7,color:#fff
-    classDef llm     fill:#143626,stroke:#3fb950,color:#fff
-    classDef agent   fill:#3a2e10,stroke:#d29922,color:#fff
-    classDef user    fill:#102a4d,stroke:#58a6ff,color:#fff
-    class W warm
-    class V vector
-    class L llm
-    class A agent
-    class U user
-
-    click U  "https://github.com/vsingh45/WarmMemory/blob/main/examples/minimal_langgraph_warm_memory.py" "minimal example"
-    click A  "https://github.com/vsingh45/WarmMemory/blob/main/warm_memory/langgraph/agent.py" "agent source"
-    click W  "https://github.com/vsingh45/WarmMemory/blob/main/warm_memory/langgraph/store.py" "WarmStore source"
-    click V  "https://langchain-ai.github.io/langgraph/" "LangGraph BaseStore docs"
-```
+![WarmMemory architecture](docs/warm_memory_architecture.drawio.svg)
 
 Solid arrows are read paths; dashed arrows are write-back. WarmStore is queried
 first; the vector tier is only consulted on warm misses, so retrieval cost is
 paid on a fraction of turns.
 
-**For a click-to-explore version** (toggle the three strategies, simulate a query
-flow, inspect each node's code): open
-[`docs/warm_memory_architecture.html`](docs/warm_memory_architecture.html)
-locally, or browse the static fallback at
-[`docs/warm_memory_architecture.svg`](docs/warm_memory_architecture.svg).
+The diagram is a `.drawio.svg` file — GitHub renders it inline, and you can
+open it directly at [diagrams.net](https://app.diagrams.net) (File → Open →
+[`docs/warm_memory_architecture.drawio.svg`](docs/warm_memory_architecture.drawio.svg))
+to edit it; the round-trip metadata is preserved on save.
 
 For a richer narrated walkthrough, open
 [`docs/warm_memory_guide.html`](docs/warm_memory_guide.html) locally or publish
