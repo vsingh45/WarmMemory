@@ -8,7 +8,7 @@ license: MIT
 repository-code: "https://github.com/vsingh45/WarmMemory"
 url: "https://github.com/vsingh45/WarmMemory"
 abstract: >-
-  WarmMemory is a research prototype for short-term memory management in LLM
+  WarmMemory is a Python package for short-term memory management in LLM
   agents. It provides a capacity-bounded warm-memory buffer, a pluggable
   importance scoring interface, a LangGraph BaseStore implementation with
   per-namespace eviction, and a benchmark that compares full-history,

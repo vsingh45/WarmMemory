@@ -5,31 +5,20 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![LangGraph](https://img.shields.io/badge/LangGraph-BaseStore-1f6feb)](https://langchain-ai.github.io/langgraph/)
 
-WarmMemory is a research prototype for short-term memory management in LLM agents.
+WarmMemory is a Python package for short-term memory management in LLM agents.
 It adds a small in-process working-memory layer that keeps the most recent or most
-relevant interactions close to the agent, reducing repeated retrieval work and helping
-control prompt growth.
+relevant interactions close to the agent, reducing repeated retrieval work and
+helping control prompt growth.
 
-This repository is designed as a portfolio-quality research artifact:
+The repository provides:
 
 - a reusable Python package for warm-memory buffering,
 - a decorator for automatic interaction capture,
 - a pluggable importance scoring interface,
 - a deterministic benchmark for recency vs relevance vs fallback memory policies,
-- and HTML documentation for architecture and usage.
-
-## Project Status
-
-This project is currently a `research prototype`.
-
-It should be described as:
-
-- an agent-memory architecture experiment,
-- a benchmarking framework for working-memory policies,
-- and a base for future model-based memory research.
-
-It should not be described as a new foundational memory algorithm unless future work
-adds a genuinely novel retention or ranking method with strong empirical evidence.
+- a LangGraph `BaseStore` integration with per-namespace eviction, embeddings-based
+  ranking, and a pre-built agent,
+- HTML documentation for architecture and usage.
 
 ## Why This Exists
 
@@ -157,8 +146,8 @@ On the current synthetic workload, the tradeoff looks like this:
 - `fallback` is the most accurate policy,
 - `relevance` sits between the two and provides a cleaner hot working set.
 
-That is the intended research outcome: not one universal winner, but a measurable
-latency-accuracy tradeoff.
+The benchmark is designed to surface that tradeoff rather than name a single
+winner: each policy occupies a different point on the latency-accuracy curve.
 
 ## Documentation
 
@@ -171,7 +160,7 @@ The HTML guide explains:
 - how the architecture works,
 - where latency is saved,
 - how to use the package,
-- and how to describe the contribution honestly.
+- and how the components fit together.
 
 ## Architecture Preview
 
@@ -186,25 +175,6 @@ Run tests:
 ```bash
 python3 -m unittest discover -s tests -v
 ```
-
-## Public Positioning
-
-If you publish this project on GitHub or LinkedIn, the safest accurate positioning is:
-
-> WarmMemory is a research prototype for short-term memory management in LLM agents,
-> focused on reducing retrieval overhead and benchmarking memory-policy tradeoffs.
-
-Recommended phrases:
-
-- "agent-memory research prototype"
-- "warm-memory architecture for LLM agents"
-- "benchmark for recency, relevance, and fallback memory strategies"
-
-Avoid overclaiming:
-
-- do not call it a brand-new memory algorithm,
-- do not imply peer-reviewed novelty,
-- do not claim production readiness unless you harden the system further.
 
 ## LangGraph Integration
 
@@ -299,5 +269,4 @@ to compare against real semantic search.
 ## License
 
 This project is released under the MIT License. See `LICENSE`.
-# WarmMemory
 
