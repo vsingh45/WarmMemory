@@ -1,0 +1,35 @@
+<mxfile host="app.diagrams.net" type="device" version="22.0.0">
+  <diagram name="TwoTierStore design" id="two-tier-store">
+    <mxGraphModel dx="1180" dy="620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1180" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="client" value="&lt;b&gt;Your LangGraph Agent&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;compiled_graph.compile(store=TwoTierStore(warm, durable))&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#102A4D;strokeColor=#58A6FF;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="430" y="30" width="320" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="twotier" value="&lt;b&gt;TwoTierStore  (BaseStore wrapper)&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;• search → warm first; if best score &lt; threshold, fall back to durable&#10;• put / delete → mirror to both stores (write-through)&#10;• list_namespaces, batch / abatch → forward to durable for ground truth&#10;no orchestration code in your agent — pretend it&apos;s a single BaseStore&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3A2E10;strokeColor=#D29922;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="310" y="180" width="560" height="110" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="warm" value="&lt;b&gt;WarmStore (warm tier)&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;• in-process pandas buffer&#10;• per-namespace capacity bound&#10;• keyword / embeddings scorer&#10;• ephemeral — dies on restart&#10;• O(namespaces × capacity) memory&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3A1F1A;strokeColor=#F78166;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="320" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="durable" value="&lt;b&gt;DurableStore (cold tier)&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;any LangGraph BaseStore:&#10;• PostgresStore&#10;• InMemoryStore + index&#10;• your own vector DB wrapper&#10;• persistent — survives restarts&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2B1F3D;strokeColor=#A371F7;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="810" y="380" width="320" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e1" value="search / put / get / delete" style="endArrow=classic;html=1;strokeColor=#8B949E;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontColor=#8B949E;fontSize=11;labelBackgroundColor=none" edge="1" parent="1" source="client" target="twotier"/>
+        <mxCell id="e2_search_warm" value="1. search warm" style="endArrow=classic;html=1;strokeColor=#3FB950;strokeWidth=2.5;exitX=0.2;exitY=1;entryX=0.7;entryY=0;dashed=1;dashPattern=10 6;fontColor=#3FB950;fontSize=11;fontStyle=1;labelBackgroundColor=none" edge="1" parent="1" source="twotier" target="warm"/>
+        <mxCell id="e3_hit_return" value="hit → return" style="endArrow=classic;html=1;strokeColor=#3FB950;strokeWidth=2.5;exitX=0.4;exitY=0;entryX=0.1;entryY=1;dashed=1;dashPattern=10 6;fontColor=#3FB950;fontSize=11;fontStyle=1;labelBackgroundColor=none" edge="1" parent="1" source="warm" target="twotier"/>
+        <mxCell id="e4_miss_durable" value="2. miss → search durable" style="endArrow=classic;html=1;strokeColor=#F0883E;strokeWidth=2.5;exitX=0.8;exitY=1;entryX=0.3;entryY=0;dashed=1;dashPattern=10 6;fontColor=#F0883E;fontSize=11;fontStyle=1;labelBackgroundColor=none" edge="1" parent="1" source="twotier" target="durable"/>
+        <mxCell id="e5_durable_return" value="populate warm + return" style="endArrow=classic;html=1;strokeColor=#F0883E;strokeWidth=2.5;exitX=0.6;exitY=0;entryX=0.9;entryY=1;dashed=1;dashPattern=10 6;fontColor=#F0883E;fontSize=11;fontStyle=1;labelBackgroundColor=none" edge="1" parent="1" source="durable" target="twotier"/>
+        <mxCell id="e6_write_warm" value="put / delete (mirror)" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=0.35;exitY=1;entryX=0.5;entryY=0;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none" edge="1" parent="1" source="twotier" target="warm"/>
+        <mxCell id="e7_write_durable" value="put / delete (mirror)" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=0.65;exitY=1;entryX=0.5;entryY=0;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none" edge="1" parent="1" source="twotier" target="durable"/>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
