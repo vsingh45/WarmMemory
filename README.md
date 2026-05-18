@@ -267,6 +267,47 @@ store = WarmStore(scorer=scorer)
 Works with any LangChain embeddings provider — OpenAI, HuggingFace, Voyage,
 Anthropic — or `DeterministicFakeEmbedding` for tests.
 
+### Two-tier deployment (`TwoTierStore`)
+
+For production, pair `WarmStore` with a durable backing tier
+(`PostgresStore`, your vector DB, etc.) through `TwoTierStore` so the agent
+code can use one `BaseStore` and the wrapper handles warm-first reads,
+fallback on miss, and write-through to both tiers:
+
+```python
+from langgraph.store.memory import InMemoryStore
+from warm_memory.langgraph import WarmStore, TwoTierStore
+
+warm = WarmStore(capacity=32)
+durable = InMemoryStore(index={"embed": my_embeddings, "dims": 1536, "fields": ["text"]})
+# Or: durable = PostgresStore.from_conn_string(DB_URI)
+
+store = TwoTierStore(warm=warm, durable=durable, warm_hit_threshold=0.34)
+
+# Use `store` like any single BaseStore — TwoTierStore handles the rest.
+graph = StateGraph(...).compile(store=store)
+```
+
+Key properties:
+
+- **Reads:** warm first; on miss (or score below `warm_hit_threshold`), fall
+  through to durable and populate warm with the result.
+- **Async writes** (`aput`, `abatch`): fan out **concurrently** via
+  `asyncio.gather` — total latency is `max(warm_put, durable_put)` instead
+  of the sum. The tests assert this with a wall-clock timing check.
+- **Sync writes** (`put`, `batch`): sequential. Use the async API in
+  production for parallel writes.
+- **Error semantics:** durable success is required (errors propagate). Warm
+  failures are tolerated by default (`fail_on_warm_error=False`) — the data
+  is safe in durable and warm rehydrates on the next read miss.
+- **Restart resilience:** on redeploy/restart, the warm cache is empty but
+  the durable tier is intact. First reads miss warm → hit durable →
+  populate warm. Users perceive no data loss; cache rehydrates in minutes.
+
+See [`docs/design/two_tier_store.md`](docs/design/two_tier_store.md) for the
+full design with the architecture diagram, per-operation contract, and
+configuration knobs.
+
 ### Pre-built agent
 
 `build_warm_memory_agent` returns a compiled LangGraph that reads warm memory

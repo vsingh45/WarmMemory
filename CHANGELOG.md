@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-18
+
+### Added
+
+- **`TwoTierStore(warm, durable)`** — a `BaseStore` wrapper that pairs a
+  warm tier (typically `WarmStore`) with any durable backing tier
+  (`PostgresStore`, `InMemoryStore` with an embedding index, your own
+  vector DB wrapper) and dispatches transparently:
+  - **Reads** try warm first; on miss (no results or top score below
+    `warm_hit_threshold`), fall through to durable and populate warm
+    with the result on the way back.
+  - **Writes (async path)** fan out **concurrently** via `asyncio.gather`,
+    so total latency is `max(warm_put, durable_put)` instead of the sum.
+    Verified by a wall-clock timing test in the suite.
+  - **Writes (sync path)** are sequential — the savings from
+    sync-parallelizing are microseconds, not worth a shared
+    `ThreadPoolExecutor` lifecycle. Users who care about write latency
+    should use the async API.
+  - **Error semantics:** durable success is required (errors propagate).
+    Warm failures are tolerated by default (`fail_on_warm_error=False`)
+    because the durable tier already has the data — the cache will
+    rehydrate on the next read miss. `fail_on_warm_error=True` switches
+    to strict mode.
+  - **Configuration:** `warm_hit_threshold` (default 0.34),
+    `populate_warm_on_miss` (default True), `write_through` (default True),
+    `fail_on_warm_error` (default False).
+- Design diagram at `docs/design/two_tier_store.drawio.svg` (animated,
+  renders inline on GitHub, opens in app.diagrams.net) and design doc
+  at `docs/design/two_tier_store.md`.
+- 16 new tests covering: warm-hit short-circuit, durable fallback,
+  populate-on-miss, threshold tuning, write mirroring, write-through
+  disabled, async parallel write timing, error tolerance, strict mode.
+
+### Why this matters
+
+Before `TwoTierStore`, users wanting "warm cache in front of a durable
+store" had to wire the orchestration by hand on every read and write.
+Forgotten mirror writes drifted the two stores; forgotten miss-fallback
+turned the warm tier into a load-bearing cache that lost data on every
+redeploy. `TwoTierStore` makes the pattern a single object the agent
+uses like any other `BaseStore`.
+
 ## [0.2.2] - 2026-05-16
 
 ### Changed
@@ -137,7 +179,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deterministic benchmark over `recency` / `relevance` / `fallback`
   strategies, HTML documentation.
 
-[Unreleased]: https://github.com/vsingh45/WarmMemory/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/vsingh45/WarmMemory/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/vsingh45/WarmMemory/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/vsingh45/WarmMemory/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/vsingh45/WarmMemory/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/vsingh45/WarmMemory/compare/v0.1.0...v0.2.0

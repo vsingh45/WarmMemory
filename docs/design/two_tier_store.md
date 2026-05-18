@@ -56,13 +56,46 @@ The headline op — this is where the two-tier pattern saves cost.
 
 `limit`/`offset` are honored by whichever store is the source of truth for the response. We do **not** merge results from both tiers — that's a different design (union-search) that we explicitly aren't proposing here.
 
-### `put(namespace, key, value, *, index=None, ttl=...)`
+### `put(namespace, key, value, *, index=None, ttl=...)` / `aput(...)`
 
-Write-through.
+Write-through, with a sync/async split:
 
-1. Call `warm.put(...)`.
-2. Call `durable.put(...)`.
-3. If either raises, propagate. (We could later make the warm write best-effort, but the default is "both must succeed.")
+- **Async path (`aput`)**: warm and durable writes run **concurrently** via
+  `asyncio.gather`. Total latency is `max(warm_put, durable_put)` ≈ `durable_put`,
+  so the warm write is effectively free. This is the recommended path for
+  production code.
+- **Sync path (`put`)**: warm then durable, sequential. We considered using
+  a `ThreadPoolExecutor` to parallelize the sync path too, but the savings
+  (50–200 µs) don't justify the thread-pool lifecycle complexity. Users who
+  care about write latency are usually already on async; the rest don't
+  notice.
+
+In both paths, **durable success is required** (errors propagate). Warm
+failures are tolerated when `fail_on_warm_error=False` (the default): a
+warm write that fails is logged but doesn't fail the operation, because
+the durable tier already has the data and warm will rehydrate on the next
+read miss.
+
+The async error semantics:
+
+```python
+async def aput(self, namespace, key, value, **kwargs):
+    warm_task = asyncio.create_task(self.warm.aput(namespace, key, value, **kwargs))
+    try:
+        await self.durable.aput(namespace, key, value, **kwargs)
+    except Exception:
+        warm_task.cancel()           # don't end up with cache-only data
+        raise
+    try:
+        await warm_task
+    except Exception as e:
+        if self.fail_on_warm_error:
+            raise
+        log.warning("Warm write failed (durable already succeeded): %s", e)
+```
+
+Concurrent execution, but with the invariant that we only "succeed" once
+durable has the data.
 
 ### `delete(namespace, key)`
 
@@ -80,7 +113,11 @@ Forward to **durable**. The warm tier only knows about namespaces it's seen rece
 
 ### `batch(ops)` / `abatch(ops)`
 
-Iterate the ops, route each through the rules above. We don't try to be cute about batching across tiers — that's a complexity multiplier with little win.
+Iterate the ops, route each through the rules above. `abatch` inherits the
+parallel-async behavior — every put/delete fans out concurrently to both
+tiers. We don't try to be cute about batching writes across tiers (e.g.,
+grouping all puts into a single transaction per store) — that's a
+complexity multiplier with little win.
 
 ## Configuration knobs
 
