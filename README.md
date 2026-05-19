@@ -162,7 +162,8 @@ winner: each policy occupies a different point on the latency-accuracy curve.
 
 - HTML guide: `docs/warm_memory_guide.html`
 - Benchmark report: `reports/warm_memory_benchmark.md`
-- README visual: `docs/warm_memory_architecture.svg`
+- Architecture diagram: [`docs/warm_memory_architecture.drawio.svg`](docs/warm_memory_architecture.drawio.svg) (animated, edits in app.diagrams.net)
+- TwoTierStore design: [`docs/design/two_tier_store.md`](docs/design/two_tier_store.md) + [diagram](docs/design/two_tier_store.drawio.svg)
 
 The HTML guide explains:
 
@@ -175,26 +176,35 @@ The HTML guide explains:
 
 ![WarmMemory architecture](https://raw.githubusercontent.com/vsingh45/WarmMemory/main/docs/warm_memory_architecture.drawio.svg)
 
+The dashed gold boundary is **`TwoTierStore`** — the v0.3.0 `BaseStore`
+wrapper that owns the warm-first/durable-fallback logic. From the agent's
+perspective, it's a single `BaseStore`; the read fan-out, threshold check,
+fallback, and concurrent write mirror all happen inside the boundary.
+
 The pipeline:
 
-1. **Agent Runtime** receives the user query in a per-user namespace and
-   triggers two reads: a fast lookup against **WarmMemory** (the in-process
-   working set) and a **Retrieval Ranker** scoring pass over those rows
-   (`KeywordImportanceScorer` by default; swap in `EmbeddingsImportanceScorer`
-   for semantic ranking).
-2. **Warm Hit?** checks the best score against the configured threshold.
-3. **Green path (warm hit):** results flow to **Prompt Builder**, which injects
-   only the top-K rows into the system prompt before invoking the **LLM**.
-   The vector tier is never touched.
-4. **Orange path (warm miss):** the query falls through to **Long-Term Memory**
-   (LangGraph's `InMemoryStore` with an embedding index, `PostgresStore`, or
-   any `BaseStore`) and the LLM consumes those results as fallback.
-5. **Dashed write-back loop:** the LLM response is captured by the decorator
-   and written back to WarmMemory (and mirrored to Long-Term Memory by the
-   `memory_write` node), so future turns can recall it.
+1. **Agent Runtime** calls `store.search(...)` and `store.aput(...)` once per
+   turn. No orchestration code — the wrapper handles everything below.
+2. Inside the boundary, the search hits **WarmMemory** (the in-process
+   working set) and runs through the **Retrieval Ranker**
+   (`KeywordImportanceScorer` by default; swap in
+   `EmbeddingsImportanceScorer` for semantic ranking).
+3. **Warm Hit?** checks the best score against the configured threshold.
+4. **Green path (warm hit):** results flow to **Prompt Builder**, which
+   injects only the top-K rows into the system prompt before invoking the
+   **LLM**. The durable tier is never touched.
+5. **Orange path (warm miss):** the query falls through to **Long-Term
+   Memory** (LangGraph's `InMemoryStore` with an embedding index,
+   `PostgresStore`, or any `BaseStore`) and the LLM consumes those results
+   as fallback. The result also populates warm on the way back.
+6. **Write-back:** `store.aput(...)` returns to TwoTierStore, which fans
+   out **concurrently via `asyncio.gather`** to both warm and durable so
+   total write latency is `max(warm, durable)` instead of the sum.
+   "capture output (decorator)" routes the LLM response back through the
+   agent's `memory_write` node.
 
 On the synthetic benchmark, ~50% of turns take the green path, eliminating
-that many vector-store calls.
+that many durable-store calls.
 
 The diagram ships in two paired formats:
 
@@ -266,6 +276,47 @@ store = WarmStore(scorer=scorer)
 
 Works with any LangChain embeddings provider — OpenAI, HuggingFace, Voyage,
 Anthropic — or `DeterministicFakeEmbedding` for tests.
+
+### Two-tier deployment (`TwoTierStore`)
+
+For production, pair `WarmStore` with a durable backing tier
+(`PostgresStore`, your vector DB, etc.) through `TwoTierStore` so the agent
+code can use one `BaseStore` and the wrapper handles warm-first reads,
+fallback on miss, and write-through to both tiers:
+
+```python
+from langgraph.store.memory import InMemoryStore
+from warm_memory.langgraph import WarmStore, TwoTierStore
+
+warm = WarmStore(capacity=32)
+durable = InMemoryStore(index={"embed": my_embeddings, "dims": 1536, "fields": ["text"]})
+# Or: durable = PostgresStore.from_conn_string(DB_URI)
+
+store = TwoTierStore(warm=warm, durable=durable, warm_hit_threshold=0.34)
+
+# Use `store` like any single BaseStore — TwoTierStore handles the rest.
+graph = StateGraph(...).compile(store=store)
+```
+
+Key properties:
+
+- **Reads:** warm first; on miss (or score below `warm_hit_threshold`), fall
+  through to durable and populate warm with the result.
+- **Async writes** (`aput`, `abatch`): fan out **concurrently** via
+  `asyncio.gather` — total latency is `max(warm_put, durable_put)` instead
+  of the sum. The tests assert this with a wall-clock timing check.
+- **Sync writes** (`put`, `batch`): sequential. Use the async API in
+  production for parallel writes.
+- **Error semantics:** durable success is required (errors propagate). Warm
+  failures are tolerated by default (`fail_on_warm_error=False`) — the data
+  is safe in durable and warm rehydrates on the next read miss.
+- **Restart resilience:** on redeploy/restart, the warm cache is empty but
+  the durable tier is intact. First reads miss warm → hit durable →
+  populate warm. Users perceive no data loss; cache rehydrates in minutes.
+
+See [`docs/design/two_tier_store.md`](docs/design/two_tier_store.md) for the
+full design with the architecture diagram, per-operation contract, and
+configuration knobs.
 
 ### Pre-built agent
 
