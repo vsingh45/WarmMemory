@@ -175,26 +175,35 @@ The HTML guide explains:
 
 ![WarmMemory architecture](https://raw.githubusercontent.com/vsingh45/WarmMemory/main/docs/warm_memory_architecture.drawio.svg)
 
+The dashed gold boundary is **`TwoTierStore`** — the v0.3.0 `BaseStore`
+wrapper that owns the warm-first/durable-fallback logic. From the agent's
+perspective, it's a single `BaseStore`; the read fan-out, threshold check,
+fallback, and concurrent write mirror all happen inside the boundary.
+
 The pipeline:
 
-1. **Agent Runtime** receives the user query in a per-user namespace and
-   triggers two reads: a fast lookup against **WarmMemory** (the in-process
-   working set) and a **Retrieval Ranker** scoring pass over those rows
-   (`KeywordImportanceScorer` by default; swap in `EmbeddingsImportanceScorer`
-   for semantic ranking).
-2. **Warm Hit?** checks the best score against the configured threshold.
-3. **Green path (warm hit):** results flow to **Prompt Builder**, which injects
-   only the top-K rows into the system prompt before invoking the **LLM**.
-   The vector tier is never touched.
-4. **Orange path (warm miss):** the query falls through to **Long-Term Memory**
-   (LangGraph's `InMemoryStore` with an embedding index, `PostgresStore`, or
-   any `BaseStore`) and the LLM consumes those results as fallback.
-5. **Dashed write-back loop:** the LLM response is captured by the decorator
-   and written back to WarmMemory (and mirrored to Long-Term Memory by the
-   `memory_write` node), so future turns can recall it.
+1. **Agent Runtime** calls `store.search(...)` and `store.aput(...)` once per
+   turn. No orchestration code — the wrapper handles everything below.
+2. Inside the boundary, the search hits **WarmMemory** (the in-process
+   working set) and runs through the **Retrieval Ranker**
+   (`KeywordImportanceScorer` by default; swap in
+   `EmbeddingsImportanceScorer` for semantic ranking).
+3. **Warm Hit?** checks the best score against the configured threshold.
+4. **Green path (warm hit):** results flow to **Prompt Builder**, which
+   injects only the top-K rows into the system prompt before invoking the
+   **LLM**. The durable tier is never touched.
+5. **Orange path (warm miss):** the query falls through to **Long-Term
+   Memory** (LangGraph's `InMemoryStore` with an embedding index,
+   `PostgresStore`, or any `BaseStore`) and the LLM consumes those results
+   as fallback. The result also populates warm on the way back.
+6. **Write-back:** `store.aput(...)` returns to TwoTierStore, which fans
+   out **concurrently via `asyncio.gather`** to both warm and durable so
+   total write latency is `max(warm, durable)` instead of the sum.
+   "capture output (decorator)" routes the LLM response back through the
+   agent's `memory_write` node.
 
 On the synthetic benchmark, ~50% of turns take the green path, eliminating
-that many vector-store calls.
+that many durable-store calls.
 
 The diagram ships in two paired formats:
 

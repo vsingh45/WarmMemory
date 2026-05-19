@@ -1,53 +1,57 @@
 <mxfile host="app.diagrams.net" type="device" version="22.0.0">
-  <diagram name="WarmMemory architecture" id="warm-memory">
-    <mxGraphModel dx="1140" dy="540" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1140" pageHeight="540" math="0" shadow="0">
+  <diagram name="WarmMemory architecture (v0.3.0)" id="warm-memory-v030">
+    <mxGraphModel dx="1400" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="600" math="0" shadow="0">
       <root>
         <mxCell id="0"/>
         <mxCell id="1" parent="0"/>
 
+        <mxCell id="twotier_group" value="&lt;b style=&quot;color:#D29922&quot;&gt;TwoTierStore (BaseStore wrapper)&lt;/b&gt;&#10;&lt;font style=&quot;font-size:11px&quot; color=&quot;#cdd9e5&quot;&gt;search → warm first, durable on miss   ·   aput → asyncio.gather → both tiers concurrently&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1c1f25;strokeColor=#D29922;strokeWidth=2;dashed=1;dashPattern=10 6;fontColor=#FFFFFF;fontSize=12;verticalAlign=top;align=left;spacingTop=8;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="450" y="30" width="770" height="530" as="geometry"/>
+        </mxCell>
+
         <mxCell id="user" value="&lt;b&gt;User Query&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;namespace = (user_id,)&#10;new request&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#102A4D;strokeColor=#58A6FF;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="30" y="240" width="130" height="70" as="geometry"/>
+          <mxGeometry x="30" y="250" width="130" height="70" as="geometry"/>
         </mxCell>
 
         <mxCell id="agent" value="&lt;b&gt;Agent Runtime&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;LangGraph StateGraph&#10;memory_lookup → respond&#10;→ memory_write&#10;(decorator captures I/O)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3A2E10;strokeColor=#D29922;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="190" y="220" width="220" height="110" as="geometry"/>
+          <mxGeometry x="190" y="230" width="220" height="110" as="geometry"/>
         </mxCell>
 
-        <mxCell id="warm" value="&lt;b&gt;WarmMemory&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;WarmStore (BaseStore)&#10;in-memory working set&#10;recent | relevant | retain&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3A1F1A;strokeColor=#F78166;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="460" y="70" width="240" height="100" as="geometry"/>
+        <mxCell id="warm" value="&lt;b&gt;WarmMemory (warm tier)&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;WarmStore (BaseStore)&#10;in-memory working set&#10;recent | relevant | retain&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3A1F1A;strokeColor=#F78166;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="470" y="70" width="260" height="110" as="geometry"/>
         </mxCell>
 
         <mxCell id="ranker" value="&lt;b&gt;Retrieval Ranker&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;ImportanceScorer&#10;keyword (default)&#10;or embeddings (BYO)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#3A2E10;strokeColor=#D29922;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="460" y="370" width="240" height="100" as="geometry"/>
+          <mxGeometry x="470" y="380" width="260" height="100" as="geometry"/>
         </mxCell>
 
         <mxCell id="warmhit" value="&lt;b&gt;Warm Hit?&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 10px&quot; color=&quot;#cdd9e5&quot;&gt;score ≥ threshold&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#2D2D33;strokeColor=#cdd9e5;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="730" y="220" width="140" height="100" as="geometry"/>
+          <mxGeometry x="780" y="230" width="140" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="longterm" value="&lt;b&gt;Long-Term Memory (durable tier)&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;InMemoryStore (vector index)&#10;PostgresStore / vector DB&#10;your own BaseStore&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2B1F3D;strokeColor=#A371F7;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
+          <mxGeometry x="940" y="380" width="260" height="110" as="geometry"/>
         </mxCell>
 
         <mxCell id="prompt" value="&lt;b&gt;Prompt Builder&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;top-K memory only&#10;compact context window&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#143626;strokeColor=#3FB950;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="900" y="70" width="210" height="90" as="geometry"/>
+          <mxGeometry x="1230" y="70" width="150" height="110" as="geometry"/>
         </mxCell>
 
         <mxCell id="llm" value="&lt;b&gt;LLM Response&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;ChatAnthropic / ChatOpenAI&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#143626;strokeColor=#3FB950;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="900" y="240" width="210" height="70" as="geometry"/>
-        </mxCell>
-
-        <mxCell id="longterm" value="&lt;b&gt;Long-Term Memory&lt;/b&gt;&#10;&lt;font style=&quot;font-size: 11px&quot; color=&quot;#cdd9e5&quot;&gt;InMemoryStore (vector index)&#10;PostgresStore / vector DB&#10;your own BaseStore&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2B1F3D;strokeColor=#A371F7;strokeWidth=2;fontColor=#FFFFFF;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="900" y="370" width="210" height="100" as="geometry"/>
+          <mxGeometry x="1230" y="240" width="150" height="70" as="geometry"/>
         </mxCell>
 
         <mxCell id="e1" style="endArrow=classic;html=1;strokeColor=#8B949E;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5" edge="1" parent="1" source="user" target="agent"/>
-        <mxCell id="e2" value="lookup" style="endArrow=classic;html=1;strokeColor=#8B949E;strokeWidth=2;exitX=1;exitY=0.2;entryX=0;entryY=0.8;fontColor=#8B949E;fontSize=11;labelBackgroundColor=none" edge="1" parent="1" source="agent" target="warm"/>
+        <mxCell id="e2" value="lookup" style="endArrow=classic;html=1;strokeColor=#8B949E;strokeWidth=2;exitX=1;exitY=0.2;entryX=0;entryY=0.6;fontColor=#8B949E;fontSize=11;labelBackgroundColor=none" edge="1" parent="1" source="agent" target="warm"/>
         <mxCell id="e3" value="score" style="endArrow=classic;html=1;strokeColor=#8B949E;strokeWidth=2;exitX=1;exitY=0.8;entryX=0;entryY=0.2;fontColor=#8B949E;fontSize=11;labelBackgroundColor=none" edge="1" parent="1" source="agent" target="ranker"/>
         <mxCell id="e4" style="endArrow=classic;html=1;strokeColor=#8B949E;strokeWidth=2;exitX=1;exitY=0.7;entryX=0;entryY=0.15" edge="1" parent="1" source="warm" target="warmhit"/>
         <mxCell id="e5" style="endArrow=classic;html=1;strokeColor=#8B949E;strokeWidth=2;exitX=1;exitY=0.3;entryX=0;entryY=0.85" edge="1" parent="1" source="ranker" target="warmhit"/>
-        <mxCell id="e6" value="yes" style="endArrow=classic;html=1;strokeColor=#3FB950;strokeWidth=2.5;exitX=1;exitY=0.2;entryX=0;entryY=0.8;fontColor=#3FB950;fontSize=11;fontStyle=1;labelBackgroundColor=none;dashed=1;dashPattern=10 6" edge="1" parent="1" source="warmhit" target="prompt"/>
+        <mxCell id="e6" value="yes" style="endArrow=classic;html=1;strokeColor=#3FB950;strokeWidth=2.5;exitX=1;exitY=0.2;entryX=0;entryY=0.7;fontColor=#3FB950;fontSize=11;fontStyle=1;labelBackgroundColor=none;dashed=1;dashPattern=10 6" edge="1" parent="1" source="warmhit" target="prompt"/>
         <mxCell id="e7" value="no" style="endArrow=classic;html=1;strokeColor=#F0883E;strokeWidth=2.5;exitX=1;exitY=0.8;entryX=0;entryY=0.2;fontColor=#F0883E;fontSize=11;fontStyle=1;labelBackgroundColor=none;dashed=1;dashPattern=10 6" edge="1" parent="1" source="warmhit" target="longterm"/>
         <mxCell id="e8" style="endArrow=classic;html=1;strokeColor=#3FB950;strokeWidth=2.5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=10 6" edge="1" parent="1" source="prompt" target="llm"/>
-        <mxCell id="e9" value="fallback" style="endArrow=classic;html=1;strokeColor=#F0883E;strokeWidth=2.5;exitX=0.5;exitY=0;entryX=0.5;entryY=1;fontColor=#F0883E;fontSize=11;fontStyle=1;labelBackgroundColor=none;dashed=1;dashPattern=10 6" edge="1" parent="1" source="longterm" target="llm"/>
-        <mxCell id="e10" value="capture output (decorator)" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none;edgeStyle=orthogonalEdgeStyle;jettySize=auto;orthogonalLoop=1" edge="1" parent="1" source="llm" target="agent"/>
-        <mxCell id="e11" value="update warm memory" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=0.2;exitY=0;entryX=0.4;entryY=0;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none;edgeStyle=orthogonalEdgeStyle;jettySize=auto;orthogonalLoop=1" edge="1" parent="1" source="agent" target="warm"/>
+        <mxCell id="e9" value="fallback" style="endArrow=classic;html=1;strokeColor=#F0883E;strokeWidth=2.5;exitX=1;exitY=0.3;entryX=0.5;entryY=1;fontColor=#F0883E;fontSize=11;fontStyle=1;labelBackgroundColor=none;dashed=1;dashPattern=10 6" edge="1" parent="1" source="longterm" target="llm"/>
+        <mxCell id="e10" value="capture output (decorator)" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=1;exitY=0.5;entryX=0.5;entryY=1;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none;edgeStyle=orthogonalEdgeStyle" edge="1" parent="1" source="llm" target="agent"/>
+        <mxCell id="e11" value="store.aput(...)  →  fan out to both tiers" style="endArrow=classic;html=1;strokeColor=#7E8590;strokeWidth=2;dashed=1;exitX=0.5;exitY=0;entryX=0.05;entryY=0.05;fontColor=#7E8590;fontSize=11;labelBackgroundColor=none;edgeStyle=orthogonalEdgeStyle" edge="1" parent="1" source="agent" target="twotier_group"/>
 
       </root>
     </mxGraphModel>
