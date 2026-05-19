@@ -162,7 +162,8 @@ winner: each policy occupies a different point on the latency-accuracy curve.
 
 - HTML guide: `docs/warm_memory_guide.html`
 - Benchmark report: `reports/warm_memory_benchmark.md`
-- README visual: `docs/warm_memory_architecture.svg`
+- Architecture diagram: [`docs/warm_memory_architecture.drawio.svg`](docs/warm_memory_architecture.drawio.svg) (animated, edits in app.diagrams.net)
+- TwoTierStore design: [`docs/design/two_tier_store.md`](docs/design/two_tier_store.md) + [diagram](docs/design/two_tier_store.drawio.svg)
 
 The HTML guide explains:
 
